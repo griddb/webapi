@@ -1,0 +1,4 @@
+rootProject.name = 'webapi-ce'
+include 'griddb-tools-common'
+project(':griddb-tools-common').projectDir = file('../common')
+
