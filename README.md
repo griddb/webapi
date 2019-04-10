@@ -16,9 +16,6 @@ Building of the library and execution of the sample programs have been checked i
 
 Build a GridDB Java client and place the created gridstore.jar under the lib directory on project directory.
 
-Download orion-ssh2-214.jar and place it under 3rd_party/orion-ssh2 directory on project directory.
-https://sourceforge.net/projects/orion-ssh2/
-
 ### Build and Run 
 
 1. Edit properties files
