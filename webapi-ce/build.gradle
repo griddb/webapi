@@ -6,7 +6,7 @@ buildscript {
         mavenCentral()
     }
     dependencies {
-		classpath("org.springframework.boot:spring-boot-gradle-plugin:${springBootVersion}")
+        classpath("org.springframework.boot:spring-boot-gradle-plugin:${springBootVersion}")
     }
 }
 
@@ -19,28 +19,29 @@ group = 'com.toshiba.mwcloud.gs.tools'
 version = '2.0.0'
 sourceCompatibility = 1.8
 
+def gridstoreVersion = '4.0.0'
+
 repositories {
     mavenCentral()
 }
 
 dependencies {
-	implementation('org.springframework.boot:spring-boot-starter-aop')
-	implementation('org.springframework.boot:spring-boot-starter-web')
+    implementation('org.springframework.boot:spring-boot-starter-aop')
+    implementation('org.springframework.boot:spring-boot-starter-web')
     runtimeOnly('org.springframework.boot:spring-boot-devtools')
-	testImplementation('org.springframework.boot:spring-boot-starter-test')
-	
-	compile group: 'com.mashape.unirest', name: 'unirest-java', version: '1.4.9'
-	
-    compile files("../lib/gridstore.jar")
+    testImplementation('org.springframework.boot:spring-boot-starter-test')
+
+    compile group: 'com.mashape.unirest', name: 'unirest-java', version: '1.4.9'
+    compile group: 'com.github.griddb', name: 'gridstore', version: "${gridstoreVersion}"
     
     compile project(":griddb-tools-common")
 }
 
 bootJar {
     manifest {
-      attributes 'Main-Class': 'org.springframework.boot.loader.PropertiesLauncher'
+        attributes 'Main-Class': 'org.springframework.boot.loader.PropertiesLauncher'
     }
     archivesBaseName = 'griddb-webapi-ce'
     
-    exclude("gridstore.jar", "jackson-core-2.2.3.jar", "jackson-databind-2.2.3.jar", "jackson-annotations-2.2.3.jar")
+    exclude("slf4j-jdk14-1.7.25.jar", "jackson-core-2.2.3.jar", "jackson-databind-2.2.3.jar", "jackson-annotations-2.2.3.jar")
 }

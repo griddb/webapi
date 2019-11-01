@@ -11,6 +11,8 @@ sourceSets {
         }
     }
 }
+
+def gridstoreVersion = '4.0.0'
  
 dependencies { 
     compile group: 'commons-io', name: 'commons-io', version: '2.4'
@@ -29,7 +31,7 @@ dependencies {
     
     compile files('../3rd_party/orion-ssh2/orion-ssh2-214.jar')
     
-    compileOnly files("../lib/gridstore.jar")
+    compile group: 'com.github.griddb', name: 'gridstore', version: "${gridstoreVersion}"
 }
 
 compileJava.options.encoding = 'UTF-8' 
