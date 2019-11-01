@@ -8,43 +8,36 @@ GridDB WebAPI is developed using GridDB Java Client and [Spring Boot](https://sp
 
 Building of the library and execution of the sample programs have been checked in the following environment.
 
-    OS:                     CentOS 7.5(x64)
-    GridDB Server and Java Client:   4.1 CE
+    OS:              CentOS 7.5(x64)
+    GridDB Server:   4.2 CE
 
 ## QuickStart
-### Preparations
-
-Build a GridDB Java client and place the created gridstore.jar under the lib directory on project directory.
 
 ### Build and Run 
-
-1. Edit properties files
-
-        Set full path of the directory placed the conf directory as "adminHome" in the following files
-        - webapi-ce/src/main/resources/application.properties
-        - webapi-ce/src/main/resources/griddb_webapiPath.properties
         
-2. Execute the command on project directory.
+1. Execute the command on project directory.
 
-        $ cd ../webapi-ce
+        $ cd webapi-ce
         $ ./gradlew build
 
     The following jar file is created.
     - webapi-ce/build/libs/griddb-webapi-ce-X.X.X.jar
 
-3. Set the LOADER_PATH variable for GridDB Java Client jar file.
+2. Set the GS_WEBAPI_HOME variable for GridDB WebAPI home directory .
 
-        $ export LOADER_PATH=../lib/gridstore.jar
+        $ export GS_WEBAPI_HOME=$PWD/..
 
-4. Edit parameter files
+    Default is /var/lib/gridstore/webapi.
 
-        Edit the following files on the conf directory
+3. Edit parameter files
+
+        Edit the following files on the ${GS_WEBAPI_HOME}/conf directory
         - repository.json
         - griddb_webapi.properties (if necessary)
 
     Please refer to [Parameter](Parameters.md).
 
-5. Run with Jar
+4. Run with Jar
 
         java -jar ./build/libs/griddb-webapi-ce-X.X.X.jar
 

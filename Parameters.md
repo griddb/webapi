@@ -2,7 +2,7 @@
 
 ## Repository file
 
-File path : (adminHome)/conf/repository.json
+File path : ${GS_WEBAPI_HOME}/conf/repository.json
 
 |Name|Type|Description|Value|
 |---|---|---|---|
@@ -15,7 +15,7 @@ File path : (adminHome)/conf/repository.json
 
 ## Web API property file
 
-File path : (adminHome)/conf/griddb_webapi.properties
+File path : ${GS_WEBAPI_HOME}/conf/griddb_webapi.properties
 
 |Name|Description|Default|
 |---|---|---|
