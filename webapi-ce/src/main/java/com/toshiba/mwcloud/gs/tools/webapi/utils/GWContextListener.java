@@ -26,11 +26,10 @@ import com.toshiba.mwcloud.gs.tools.common.repository.RepositoryUtils;
 import com.toshiba.mwcloud.gs.tools.common.repository.ToolProperties;
 import com.toshiba.mwcloud.gs.tools.webapi.exception.GWException;
 
-@PropertySource("griddb_webapiPath.properties")
 public class GWContextListener implements ServletContextListener {
 
-	@Value("${adminHome}")
-	private String adminHome;
+	@Value("${webapiHome}")
+	private String webapiHome;
 
 	@Value("${propertyFilePath}")
 	private String propertyFilePath;
@@ -45,7 +44,7 @@ public class GWContextListener implements ServletContextListener {
 	@Override
 	public void contextInitialized(ServletContextEvent servletContextEvent) {
 
-		ToolProperties.readInitPropertyFile(adminHome, propertyFilePath);
+		ToolProperties.readInitPropertyFile(webapiHome, propertyFilePath);
 		try {
 			RepositoryUtils.init();
 			RepositoryUtils.readRepository();

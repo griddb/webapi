@@ -28,11 +28,10 @@ import org.springframework.context.annotation.PropertySource;
 import org.springframework.stereotype.Component;
 
 @Component
-@PropertySource("griddb_webapiPath.properties")
 public class WebAPICustomizePort implements WebServerFactoryCustomizer<ConfigurableWebServerFactory> {
 
-	@Value("${adminHome}")
-	private String adminHome;
+	@Value("${webapiHome}")
+	private String webapiHome;
 
 	@Value("${propertyFilePath}")
 	private String propertyFilePath;
@@ -45,7 +44,7 @@ public class WebAPICustomizePort implements WebServerFactoryCustomizer<Configura
 
 		Properties configProp = new Properties();
 		try {
-			File file = new File(adminHome, propertyFilePath);
+			File file = new File(webapiHome, propertyFilePath);
 			configProp.load(new FileInputStream(file));
 		} catch (IOException exception) {
 			System.out.println(
