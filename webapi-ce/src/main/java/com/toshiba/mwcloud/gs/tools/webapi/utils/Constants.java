@@ -112,17 +112,7 @@ public class Constants {
 	
 	public static final int MIN_SYSTEM_MAX_LIMIT = 1;
 
-	public static final String ADMIN_HOME = "adminHome";
-
-	public static final String PROPERTIES_FILE_PATH = "propertyFilePath";
-
 	public static final long SIZE_TIMESTAMP = 8;
-	
-	/**
-	 * Relative path of file griddb_webapiPath.properties
-	 */
-	public static final String GIRDDB_WEBAPI_PATH = "/conf/griddb_webapiPath.properties";
-	
 	
 	/**
 	 * Maximum of timeout (10 seconds) for checking connection to database
