@@ -60,5 +60,18 @@ public class GWContextListener implements ServletContextListener {
 				throw new GWException("Failed to read properties file");
 			}
 		}
+
+		/**
+		 * Check driver for executing SQL
+		 */
+		int loginTimeout = GWSettingInfo.getLoginTimeout();
+		if (loginTimeout > 0) {
+			try {
+				Class.forName(Constants.DRIVER_NAME);
+			} catch (ClassNotFoundException e) {
+				throw new GWException("Failed to setup jdbc");
+			}
+			java.sql.DriverManager.setLoginTimeout(loginTimeout);
+		}
 	}
 }

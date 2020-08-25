@@ -18,7 +18,12 @@ package com.toshiba.mwcloud.gs.tools.webapi.service.impl;
 
 import java.io.UnsupportedEncodingException;
 import java.sql.Blob;
+import java.sql.Connection;
+import java.sql.ResultSet;
+import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
+import java.sql.Statement;
+import java.sql.Types;
 import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -46,6 +51,9 @@ import com.toshiba.mwcloud.gs.tools.webapi.dto.GWContainerListOuput;
 import com.toshiba.mwcloud.gs.tools.webapi.dto.GWPutRowOutput;
 import com.toshiba.mwcloud.gs.tools.webapi.dto.GWQueryOutput;
 import com.toshiba.mwcloud.gs.tools.webapi.dto.GWQueryParams;
+import com.toshiba.mwcloud.gs.tools.webapi.dto.GWSQLColumnInfo;
+import com.toshiba.mwcloud.gs.tools.webapi.dto.GWSQLInput;
+import com.toshiba.mwcloud.gs.tools.webapi.dto.GWSQLOutput;
 import com.toshiba.mwcloud.gs.tools.webapi.dto.GWSortCondition;
 import com.toshiba.mwcloud.gs.tools.webapi.dto.GWTQLColumnInfo;
 import com.toshiba.mwcloud.gs.tools.webapi.dto.GWTQLInput;
@@ -57,6 +65,7 @@ import com.toshiba.mwcloud.gs.tools.webapi.exception.GWNotFoundException;
 import com.toshiba.mwcloud.gs.tools.webapi.exception.GWResourceConflictedException;
 import com.toshiba.mwcloud.gs.tools.webapi.service.WebAPIService;
 import com.toshiba.mwcloud.gs.tools.webapi.utils.ConnectionThread;
+import com.toshiba.mwcloud.gs.tools.webapi.utils.ConnectionUtils;
 import com.toshiba.mwcloud.gs.tools.webapi.utils.Constants;
 import com.toshiba.mwcloud.gs.tools.webapi.utils.ConversionUtils;
 import com.toshiba.mwcloud.gs.tools.webapi.utils.ConversionUtils.TQLStatementType;
@@ -1267,5 +1276,247 @@ public class WebAPIServiceImpl implements WebAPIService {
 		}
 		return rowsCount;
 	}
+
+	@Override
+	public List<GWSQLOutput> executeSQLs(String authorization, String cluster, String database,
+			List<GWSQLInput> listSQLInput) throws GSException, SQLException, UnsupportedEncodingException {
+
+		if (GWSettingInfo.getLogger().isInfoEnabled()) {
+			logger.info("executeSQLs : cluster=" + cluster + " database=" + database);
+		}
+		long start = System.nanoTime();
+
+		GWUser user = GWUser.getUserfromAuthorization(authorization);
+		if (listSQLInput == null || listSQLInput.size() == 0) {
+			throw new GWBadRequestException("List of SQL is empty");
+		}
+
+		if(listSQLInput.size() > GWSettingInfo.getMaxQueryNum()){
+			throw new GWBadRequestException("Exceed maximum of SQLs that can be executed");
+		}
+
+		for (GWSQLInput sqlInput : listSQLInput) {
+			Validation.validateGWSQLInput(sqlInput);
+		}
+
+		List<GWSQLOutput> result = new ArrayList<>();
+		for (GWSQLInput sqlInput : listSQLInput) {
+			result.add(executeSQL(user.getUsername(), user.getPassword(), cluster, database, sqlInput));
+		}
+
+		long end = System.nanoTime();
+		if (GWSettingInfo.getLogger().isDebugEnabled()) {
+			logger.debug("executeSQLs : time=" + (end - start) / 1000000f);
+		}
+
+		return result;
+	}
+
+	private GWSQLOutput executeSQL(String username, String password, String cluster, String database, GWSQLInput input)
+			throws SQLException, UnsupportedEncodingException {
+		GWSQLOutput sqlResult = new GWSQLOutput();
+
+		Connection connection = ConnectionUtils.getConnection(cluster, database, username, password);
+		Statement statement = null;
+		try {
+			statement = connection.createStatement();
+		} catch (SQLException e) {
+			try {
+				connection.close();
+			} catch (SQLException ex) {
+				e.printStackTrace();
+			}
+			throw e;
+		}
+
+		ResultSet resultSet = null;
+		try {
+			resultSet = statement.executeQuery(input.getStmt());
+		} catch (SQLException e) {
+			try {
+				statement.close();
+				connection.close();
+			} catch (SQLException ex) {
+				e.printStackTrace();
+			}
+			throw e;
+		}
+
+		ResultSetMetaData resultSetMetadata = null;
+		try {
+			resultSetMetadata = resultSet.getMetaData();
+		} catch (SQLException e) {
+			try {
+				resultSet.close();
+				statement.close();
+				connection.close();
+			} catch (SQLException ex) {
+				e.printStackTrace();
+			}
+			throw e;
+		}
+
+		try {
+			GWSQLOutput temp = resultSetToSqlResult(resultSet, resultSetMetadata);
+			sqlResult.setColumns(temp.getColumns());
+			sqlResult.setResults(temp.getResults());
+		} catch (SQLException e) {
+			throw e;
+		} catch (UnsupportedEncodingException e) {
+			throw e;
+		} finally {
+			try {
+				resultSet.close();
+				statement.close();
+				connection.close();
+			} catch (SQLException ex) {
+				ex.printStackTrace();
+			}
+		}
+
+		return sqlResult;
+	}
+
+	private GWSQLOutput resultSetToSqlResult(ResultSet rs, ResultSetMetaData md)
+			throws SQLException, UnsupportedEncodingException {
+
+		GWSQLOutput result = new GWSQLOutput();
+		List<GWSQLColumnInfo> columns = new ArrayList<GWSQLColumnInfo>(md.getColumnCount());
+		for (int i = 1; i <= md.getColumnCount(); i++) {
+			GWSQLColumnInfo columnInfo = new GWSQLColumnInfo();
+			String columnName = md.getColumnName(i);
+			if (columnName.equals("")) {
+				columnInfo.setName("aggregationResult");
+			} else {
+				columnInfo.setName(columnName);
+			}
+
+			columnInfo.setType(md.getColumnTypeName(i));
+			columns.add(columnInfo);
+		}
+
+		List<List<Object>> rows = new ArrayList<List<Object>>();
+		long rowMaxSize = GWSettingInfo.getMaxGetRowSize();
+		long rowsize = 0;
+		while (rs.next()) {
+			List<Object> list = new ArrayList<Object>(md.getColumnCount());
+			for (int i = 1; i <= md.getColumnCount(); i++) {
+				long size = stringify(list, rs, i, md.getColumnType(i));
+				rowsize += size;
+			}
+			if (rowsize > rowMaxSize) {
+				throw new GWBadRequestException("Too many result");
+			}
+			rows.add(list);
+		}
+		result.setColumns(columns);
+		result.setResults(rows);
+		return result;
+	}
+
+	private static long stringify(List<Object> list, ResultSet rs, int i, int type)
+			throws SQLException, UnsupportedEncodingException {
+		long size = 0;
+
+		switch (type) {
+		case Types.BIGINT:
+			long valLong = rs.getLong(i);
+			if (rs.wasNull()) {
+				list.add(null);
+			} else {
+				size = Long.SIZE / Byte.SIZE;
+				list.add(valLong);
+			}
+			break;
+		case Types.BIT:
+			boolean valBoolean = rs.getBoolean(i);
+			if (rs.wasNull()) {
+				list.add(null);
+			} else {
+				size = 1;
+				list.add(valBoolean);
+			}
+			break;
+		case Types.BLOB:
+			rs.getString(i);
+			if (rs.wasNull()) {
+				list.add(null);
+			} else {
+				list.add("");
+			}
+			break;
+		case Types.DOUBLE:
+			double valDouble = rs.getDouble(i);
+			if (rs.wasNull()) {
+				list.add(null);
+			} else {
+				size = Double.SIZE / Byte.SIZE;
+				list.add(valDouble);
+			}
+			break;
+		case Types.FLOAT:
+			float valFloat = rs.getFloat(i);
+			if (rs.wasNull()) {
+				list.add(null);
+			} else {
+				size = Float.SIZE / Byte.SIZE;
+				list.add(valFloat);
+			}
+			break;
+		case Types.INTEGER:
+			int valInteger = rs.getInt(i);
+			if (rs.wasNull()) {
+				list.add(null);
+			} else {
+				size = Integer.SIZE / Byte.SIZE;
+				list.add(valInteger);
+			}
+			break;
+		case Types.OTHER:
+			list.add(null);
+			break;
+		case Types.SMALLINT:
+			short valShort = rs.getShort(i);
+			if (rs.wasNull()) {
+				list.add(null);
+			} else {
+				size = Short.SIZE / Byte.SIZE;
+				list.add(valShort);
+			}
+			break;
+		case Types.TIMESTAMP:
+			String valTimestamp = rs.getString(i);
+			if (rs.wasNull()) {
+				list.add(null);
+			} else {
+				size = valTimestamp.getBytes(Constants.ENCODING).length;
+				list.add(valTimestamp);
+			}
+			break;
+		case Types.TINYINT:
+			int valByte = rs.getByte(i);
+			if (rs.wasNull()) {
+				list.add(null);
+			} else {
+				size = 1;
+				list.add(valByte);
+			}
+			break;
+		case Types.VARCHAR:
+			String valString = rs.getString(i);
+			if (rs.wasNull()) {
+				list.add(null);
+			} else {
+				size = valString.getBytes(Constants.ENCODING).length;
+				list.add(valString);
+			}
+			break;
+		default:
+			throw new SQLException("Unknown type(" + type + ") at column(" + i + ")");
+		}
+
+		return size;
+	}
+
 
 }
