@@ -8,7 +8,7 @@ GridDB WebAPI is developed using GridDB Java Client and [Spring Boot](https://sp
 
 Building of the library and execution of the sample programs have been checked in the following environment.
 - OS: CentOS 7.5(x64)
-- [GridDB Server](https://github.com/griddb/griddb_nosql): 4.2
+- [GridDB Server](https://github.com/griddb/griddb): 4.5
 
 ## QuickStart
 
@@ -69,7 +69,7 @@ GridDB Server need to be started in advance.
         --> {"columns":[{"name":"col1","type":"STRING"},{"name":"col2","type":"INTEGER"}, 
               {"name":"col3","type":"BOOL"}],"rows":[["value",1,true]],"offset":0,"limit":1000,"total":1}
 
-4. Query
+4. Query with TQL
 
         #Request  http://[host]:[port]/griddb/v2/[clusterName]/dbs/public/tql 
         curl -X POST --basic -u admin:admin -H "Content-type:application/json" -d 
@@ -77,6 +77,15 @@ GridDB Server need to be started in advance.
         http://127.0.0.1:8010/griddb/v2/mycluster/dbs/public/tql 
         --> [{"columns":[{"name":"col1","type":"STRING"},{"name":"col2","type":"INTEGER"}, 
                {"name":"col3","type":"BOOL"}],"results":[["value",1,true]],"offset":0,"limit":1000000,"total":1}]
+
+5. Query with SQL
+
+        #Request  http://[host]:[port]/griddb/v2/[clusterName]/dbs/public/sql 
+        curl -X POST -u admin:admin -H "Content-type:application/json; charset=UTF-8" 
+        -d '[{"type":"sql-select","stmt":"select * from test"}]' 
+        http://127.0.0.1:8010/griddb/v2/mycluster/dbs/public/sql 
+        --> [{"columns":[{"name":"col1","type":"STRING"},{"name":"col2","type":"INTEGER"}, 
+               {"name":"col3","type":"BOOL"}],"results":[["value",1,true]]}]
 
 Please refer to [WebAPI Specification](WebAPISpecification.md).
 
