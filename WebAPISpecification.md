@@ -16,6 +16,7 @@ Port number is a parameter set at griddb_webapi.properties.
 |F) delete rows|DELETE|/:cluster/dbs/public/containers/:container/rows|
 |G) create container|POST|/:cluster/dbs/public/containers|
 |H) delete containers|DELETE|/:cluster/dbs/public/containers|
+|I) execute multiple SQLs|POST|/:cluster/dbs/public/sql|
 
 The :cluster (the :container) means cluster name (container name).
 
@@ -147,3 +148,21 @@ Example:
             "container2",
             "container3"
         ]
+
+### I) Body for executing multiple SQLs
+
+Body:
+request of SQLs
+
+Example:
+
+        [
+            {"type" : "sql-select", "stmt" : "select * from container1"},
+            {"type" : "sql-select", "stmt" : "select column1 from container 2 where column1>=0"},
+            {"type" : "sql-select", "stmt" : "select column2, column3 from container3 order by column1 desc"}
+        ]
+
+|Name|Type|Description|Value|
+|---|---|---|---|
+|/type|string|Type of query statement|"sql-select"|
+|stmt|string|SQL SELECT statement||

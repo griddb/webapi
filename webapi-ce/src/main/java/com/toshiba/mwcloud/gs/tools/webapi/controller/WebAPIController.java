@@ -49,6 +49,8 @@ import com.toshiba.mwcloud.gs.tools.webapi.dto.GWQueryOutput;
 import com.toshiba.mwcloud.gs.tools.webapi.dto.GWQueryParams;
 import com.toshiba.mwcloud.gs.tools.webapi.dto.GWSortCondition;
 import com.toshiba.mwcloud.gs.tools.webapi.dto.GWTQLInput;
+import com.toshiba.mwcloud.gs.tools.webapi.dto.GWSQLInput;
+import com.toshiba.mwcloud.gs.tools.webapi.dto.GWSQLOutput;
 import com.toshiba.mwcloud.gs.tools.webapi.exception.GWBadRequestException;
 import com.toshiba.mwcloud.gs.tools.webapi.exception.GWException;
 import com.toshiba.mwcloud.gs.tools.webapi.service.WebAPIService;
@@ -432,6 +434,42 @@ public class WebAPIController {
 
 		webAPIServiceImpl.deleteContainers(authorization, cluster, database, listContainers);
 		return new ResponseEntity<>(HttpStatus.NO_CONTENT);
+	}
+
+	/**
+	 * [CE] Execute multiple select-SQLs.
+	 *
+	 * <br>
+	 * <br>
+	 * <b>Processing flow:</b>
+	 * <ol>
+	 * <li>Execute SQLs by calling WebAPIService.executeSQLs(String, String,
+	 * String, List) function.</li>
+	 * </ol>
+	 *
+	 * @param authorization
+	 *            basic authentication
+	 * @param cluster
+	 *            name of cluster
+	 * @param database
+	 *            name of database
+	 * @param listSQLInput
+	 *            a {@link List} of {@link GWSQLInput}
+	 * @return a {@link ResponseEntity} object with body is a {@link List} of
+	 *         {@link GWSQLOutput} and status {@link HttpStatus#OK}
+	 * @throws GSException
+	 *             internal server exception
+	 *             {@link HttpStatus#INTERNAL_SERVER_ERROR}
+	 * @throws SQLException a {@link SQLException}
+	 * @throws UnsupportedEncodingException a {@link UnsupportedEncodingException}
+	 */
+	@RequestMapping(value = "{cluster}/dbs/{database}/sql", method = RequestMethod.POST, produces = "application/json; charset=UTF-8")
+	public ResponseEntity<?> executeSQLs(@RequestHeader(name = "Authorization", required = false) String authorization,
+			@PathVariable("cluster") String cluster, @PathVariable("database") String database,
+			@RequestBody List<GWSQLInput> listSQLInput) throws GSException, SQLException, UnsupportedEncodingException {
+
+		List<GWSQLOutput> gwOutput = webAPIServiceImpl.executeSQLs(authorization, cluster, database, listSQLInput);
+		return new ResponseEntity<>(gwOutput, HttpStatus.OK);
 	}
 
 }

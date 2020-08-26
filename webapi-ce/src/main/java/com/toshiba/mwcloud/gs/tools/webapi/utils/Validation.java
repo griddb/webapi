@@ -22,6 +22,7 @@ import java.util.regex.Pattern;
 import com.toshiba.mwcloud.gs.tools.webapi.dto.GWColumnInfo;
 import com.toshiba.mwcloud.gs.tools.webapi.dto.GWContainerInfo;
 import com.toshiba.mwcloud.gs.tools.webapi.dto.GWQueryParams;
+import com.toshiba.mwcloud.gs.tools.webapi.dto.GWSQLInput;
 import com.toshiba.mwcloud.gs.tools.webapi.dto.GWTQLInput;
 import com.toshiba.mwcloud.gs.tools.webapi.exception.GWBadRequestException;
 
@@ -144,5 +145,30 @@ public class Validation {
 			}
 		}
 		return false;
+	}
+
+	/**
+	 * Validate a {@link GWSQLInput}
+	 *
+	 * @param sqlInput
+	 *            a {@link GWSQLInput} object
+	 */
+	public static void validateGWSQLInput(GWSQLInput sqlInput) {
+
+		if (sqlInput == null) {
+			throw new GWBadRequestException("SQL input is invalid");
+		}
+
+		if (null == sqlInput.getType() || !"sql-select".equals(sqlInput.getType())) {
+			throw new GWBadRequestException("Type of query is invalid");
+		}
+
+		if (null == sqlInput.getStmt() || sqlInput.getStmt().trim().length() == 0) {
+			throw new GWBadRequestException("Statement is invalid");
+		}
+
+		if (containsNotAllowedCharacter(sqlInput.getStmt())) {
+			throw new GWBadRequestException("Invalid character(s) found");
+		}
 	}
 }

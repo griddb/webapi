@@ -32,6 +32,8 @@ import com.toshiba.mwcloud.gs.tools.webapi.dto.GWContainerListOuput;
 import com.toshiba.mwcloud.gs.tools.webapi.dto.GWPutRowOutput;
 import com.toshiba.mwcloud.gs.tools.webapi.dto.GWQueryOutput;
 import com.toshiba.mwcloud.gs.tools.webapi.dto.GWQueryParams;
+import com.toshiba.mwcloud.gs.tools.webapi.dto.GWSQLInput;
+import com.toshiba.mwcloud.gs.tools.webapi.dto.GWSQLOutput;
 import com.toshiba.mwcloud.gs.tools.webapi.dto.GWSortCondition;
 import com.toshiba.mwcloud.gs.tools.webapi.dto.GWTQLInput;
 import com.toshiba.mwcloud.gs.tools.webapi.dto.GWTQLOutput;
@@ -265,4 +267,28 @@ public interface WebAPIService {
 	 */
 	public void createContainer(String authorization, String cluster, String database, GWContainerInfo gwContainerInfo) throws GSException;
 	
+	/**
+	 * Execute multiple SQLs.
+	 *
+	 * <br><br>
+	 * <b>Processing flow:</b>
+	 * <ol>
+	 *  <li>Check authorization</li>
+	 *  <li>Call function {@link GWUser#getUserfromAuthorization(String)} to get {@link GWUser} from authorization</li>
+	 *  <li>Call function {@link GridStoreUtils#getGridStore(String, String, String, String)} to get the information of the target cluster</li>
+	 *  <li>Call function checkAuthentication(GridStore) to check the authentication</li>
+	 *  <li>If the size of {@code listSQLInput} is larger than the maximum of number of SQLs that can be executed, throw a {@link GWBadRequestException}</li>
+	 *  <li>For each {@link GWSQLInput} in the {@code listSQLInput}, call function {@code executeSQL(String, String, String, String, GWSQLOutput)} to execute each SQL</li>
+	 *  <li>Return a list of {@link GWSQLOutput}</li>
+	 * </ol>
+	 * @param authorization basic authentication
+	 * @param cluster name of cluster
+	 * @param database name of database
+	 * @param listSQLInput a {@link List} of {@link GWSQLInput}
+	 * @return a {@link List} of {@link GWSQLOutput}
+	 * @throws GSException internal server exception
+	 * @throws SQLException a {@link SQLException}
+	 * @throws UnsupportedEncodingException a {@link UnsupportedEncodingException}
+	 */
+	public List<GWSQLOutput> executeSQLs(String authorization, String cluster, String database, List<GWSQLInput> listSQLInput) throws GSException, SQLException, UnsupportedEncodingException;
 }
