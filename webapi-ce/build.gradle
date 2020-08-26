@@ -16,7 +16,7 @@ apply plugin: 'org.springframework.boot'
 apply plugin: 'io.spring.dependency-management'
 
 group = 'com.toshiba.mwcloud.gs.tools'
-version = '2.1.0'
+version = '2.2.0'
 sourceCompatibility = 1.8
 
 def gridstoreVersion = '4.5.0'
