@@ -12,7 +12,7 @@ sourceSets {
     }
 }
 
-def gridstoreVersion = '4.0.0'
+def gridstoreVersion = '5.5.0'
  
 dependencies { 
     compile group: 'commons-io', name: 'commons-io', version: '2.4'
