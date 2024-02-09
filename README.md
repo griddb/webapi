@@ -7,8 +7,8 @@ GridDB WebAPI is developed using GridDB Java Client and [Spring Boot](https://sp
 ## Operating environment
 
 Building of the library and execution of the sample programs have been checked in the following environment.
-- OS: CentOS 7.5(x64)
-- [GridDB Server](https://github.com/griddb/griddb): 4.5
+- OS: CentOS 7.9(x64)
+- [GridDB Server](https://github.com/griddb/griddb): 5.5
 
 ## QuickStart
 
@@ -33,8 +33,6 @@ Building of the library and execution of the sample programs have been checked i
         Edit the following files on the ${GS_WEBAPI_HOME}/conf directory
         - repository.json
         - griddb_webapi.properties (if necessary)
-
-    Please refer to [Parameter](Parameters.md).
 
 4. Run with Jar
 
@@ -87,7 +85,9 @@ GridDB Server need to be started in advance.
         --> [{"columns":[{"name":"col1","type":"STRING"},{"name":"col2","type":"INTEGER"}, 
                {"name":"col3","type":"BOOL"}],"results":[["value",1,true]]}]
 
-Please refer to [WebAPI Specification](WebAPISpecification.md).
+Please refer to the file below for more detailed information.  
+  - [WebAPI Reference (en)](GridDB_Web_API_Reference.md)
+  - [WebAPI Reference (ja)](GridDB_Web_API_Reference_ja.md)
 
 ## Community
 
