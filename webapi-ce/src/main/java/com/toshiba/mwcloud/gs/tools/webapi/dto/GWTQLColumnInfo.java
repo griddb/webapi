@@ -17,6 +17,8 @@
 package com.toshiba.mwcloud.gs.tools.webapi.dto;
 
 import com.toshiba.mwcloud.gs.GSType;
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.toshiba.mwcloud.gs.TimeUnit;
 
 public class GWTQLColumnInfo {
 
@@ -24,11 +26,15 @@ public class GWTQLColumnInfo {
 	 * Name of column
 	 */
 	private String name;
-	
+
 	/**
 	 * Type of column 
 	 */
 	private GSType type;
+
+	/* Precision if column type is TIMESTAMP */
+	@JsonInclude(JsonInclude.Include.NON_NULL)
+	private TimeUnit timePrecision;
 
 	/**
 	 * Get the name of column
@@ -65,5 +71,24 @@ public class GWTQLColumnInfo {
 	public void setType(GSType type) {
 		this.type = type;
 	}
+
+	/**
+	 * Get precision if column type is TIMESTAMP
+	 *
+	 * @return the precision of timestamp in TimeUnit
+	 */
+	public TimeUnit getTimePrecision() {
+		return timePrecision;
+	};
+
+	/**
+	 * Set precision if column type is TIMESTAMP
+	 *
+	 * @param precision the precision of timestamp in TimeUnit
+	 */
+	public void setTimePrecision(TimeUnit precision) {
+		this.timePrecision = precision;
+	};
+
 	
 }

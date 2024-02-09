@@ -16,44 +16,72 @@
 
 package com.toshiba.mwcloud.gs.tools.webapi.controller;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.util.Properties;
-
+import org.apache.catalina.Context;
+import org.apache.catalina.connector.Connector;
+import org.apache.tomcat.util.descriptor.web.SecurityCollection;
+import org.apache.tomcat.util.descriptor.web.SecurityConstraint;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.web.server.ConfigurableWebServerFactory;
-import org.springframework.boot.web.server.WebServerFactoryCustomizer;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.boot.web.embedded.tomcat.TomcatServletWebServerFactory;
+import org.springframework.boot.web.servlet.server.ServletWebServerFactory;
+import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.PropertySource;
 import org.springframework.stereotype.Component;
 
 @Component
-public class WebAPICustomizePort implements WebServerFactoryCustomizer<ConfigurableWebServerFactory> {
+@PropertySource("application.properties")
+public class WebAPICustomizePort {
 
-	@Value("${webapiHome}")
-	private String webapiHome;
+	@Value("${adminHome}")
+	private String adminHome;
 
 	@Value("${propertyFilePath}")
 	private String propertyFilePath;
 
-	/**
-	 * Customize port of API
-	 */
-	@Override
-	public void customize(ConfigurableWebServerFactory factory) {
+	@Value(value = "${server.ssl.key-store:}")
+	private String sslKeyStore;
 
-		Properties configProp = new Properties();
-		try {
-			File file = new File(webapiHome, propertyFilePath);
-			configProp.load(new FileInputStream(file));
-		} catch (IOException exception) {
-			System.out.println(
-					"No file griddb_webapi.properties has been found with the configuration in file griddb_webapiPath.properties");
+	@Value("${server.port}")
+	int httpsPort;
+
+	/**
+	 * Create a Tomcat Servlet Web Server bean.
+	 *
+	 * @return Tomcat Servlet Web Server
+	 */
+	@Bean
+	@ConditionalOnProperty("${server.ssl.enabled:true}")
+	public ServletWebServerFactory servletContainer() {
+		boolean needRedirectToHttps = sslKeyStore != null && !sslKeyStore.isEmpty();
+
+		TomcatServletWebServerFactory tomcat = null;
+
+		if (!needRedirectToHttps) {
+			tomcat = new TomcatServletWebServerFactory();
+			return tomcat;
 		}
-		String port = configProp.getProperty("port");
-		if (port != null) {
-			factory.setPort(Integer.parseInt(port));
-		}
+
+		tomcat =
+				new TomcatServletWebServerFactory() {
+
+					@Override
+					protected void postProcessContext(Context context) {
+						SecurityConstraint securityConstraint = new SecurityConstraint();
+						securityConstraint.setUserConstraint("CONFIDENTIAL");
+						SecurityCollection collection = new SecurityCollection();
+						collection.addPattern("/*");
+						securityConstraint.addCollection(collection);
+						context.addConstraint(securityConstraint);
+					}
+				};
+		tomcat.addAdditionalTomcatConnectors(redirectConnector());
+		return tomcat;
 	}
 
+	private Connector redirectConnector() {
+		Connector connector = new Connector(TomcatServletWebServerFactory.DEFAULT_PROTOCOL);
+		connector.setScheme("https");
+		connector.setPort(httpsPort);
+		return connector;
+	}
 }

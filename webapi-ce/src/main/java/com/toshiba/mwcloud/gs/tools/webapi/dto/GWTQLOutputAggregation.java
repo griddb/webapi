@@ -24,12 +24,12 @@ public class GWTQLOutputAggregation {
 	 * List of column information
 	 */
 	private List<GWTQLColumnInfo> columns;
-	
+
 	/**
 	 * List of rows
 	 */
 	private List<List<Object>> results;
-	
+
 	/**
 	 * Get list of column information
 	 * 

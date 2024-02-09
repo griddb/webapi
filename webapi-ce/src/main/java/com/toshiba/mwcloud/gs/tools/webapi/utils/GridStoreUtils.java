@@ -16,7 +16,6 @@
 
 package com.toshiba.mwcloud.gs.tools.webapi.utils;
 
-import java.util.Properties;
 
 import com.toshiba.mwcloud.gs.GSException;
 import com.toshiba.mwcloud.gs.GridStore;
@@ -27,8 +26,13 @@ import com.toshiba.mwcloud.gs.tools.common.repository.RepositoryUtils;
 import com.toshiba.mwcloud.gs.tools.webapi.exception.GWBadRequestException;
 import com.toshiba.mwcloud.gs.tools.webapi.exception.GWException;
 import com.toshiba.mwcloud.gs.tools.webapi.exception.GWUnauthorizedException;
+import java.util.Properties;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class GridStoreUtils {
+
+	private static final Logger logger = LoggerFactory.getLogger(GridStoreUtils.class);
 
 	/**
 	 * Get the target cluster information from the repository and obtain the
@@ -82,6 +86,10 @@ public class GridStoreUtils {
 		props.setProperty(Constants.PROP_TRANSACTION_TIMEOUT, GWSettingInfo.getTransactionTimeout());
 		props.setProperty(Constants.PROP_FAILOVER_TIMEOUT, GWSettingInfo.getFailoverTimeout());
 		props.setProperty(Constants.PROP_CONTAINER_CACHE_SIZE, GWSettingInfo.getContainerCacheSize());
+
+		// updated 4.5.0 version
+		GWSettingInfo.setOptionalProperty(props);
+
 		if (GWSettingInfo.getConsistensy() != null) {
 			props.setProperty(Constants.PROP_CONSISTENCY, GWSettingInfo.getConsistensy());
 		}

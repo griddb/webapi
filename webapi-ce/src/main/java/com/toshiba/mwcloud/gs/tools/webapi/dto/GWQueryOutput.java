@@ -16,8 +16,10 @@
 
 package com.toshiba.mwcloud.gs.tools.webapi.dto;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import java.util.List;
 
+@JsonInclude(JsonInclude.Include.NON_NULL)
 public class GWQueryOutput {
 
 	/**
@@ -44,6 +46,9 @@ public class GWQueryOutput {
 	 * Total rows of the container
 	 */
 	private long total;
+
+	/** where is store download blob data file. */
+	private String blobPath;
 
 	/**
 	 * Get list of column information
@@ -138,6 +143,24 @@ public class GWQueryOutput {
 	 */
 	public void setTotal(long total) {
 		this.total = total;
+	}
+
+	/**
+	 * Get path folder for bob data file.
+	 * 
+	 * @return path folder for bob data file
+	 */
+	public String getBlobPath() {
+		return blobPath;
+	}
+
+	/**
+	 * Set path folder for bob data file.
+	 * 
+	 * @param blobPath path folder for bob data file
+	 */
+	public void setBlobPath(String blobPath) {
+		this.blobPath = blobPath;
 	}
 
 }

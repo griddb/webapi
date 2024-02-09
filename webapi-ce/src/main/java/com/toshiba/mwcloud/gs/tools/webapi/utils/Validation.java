@@ -25,6 +25,8 @@ import com.toshiba.mwcloud.gs.tools.webapi.dto.GWQueryParams;
 import com.toshiba.mwcloud.gs.tools.webapi.dto.GWSQLInput;
 import com.toshiba.mwcloud.gs.tools.webapi.dto.GWTQLInput;
 import com.toshiba.mwcloud.gs.tools.webapi.exception.GWBadRequestException;
+import com.toshiba.mwcloud.gs.tools.webapi.utils.Constants.AuthenticationMethod;
+import com.toshiba.mwcloud.gs.tools.webapi.utils.Constants.SslMode;
 
 public class Validation {
 
@@ -159,10 +161,6 @@ public class Validation {
 			throw new GWBadRequestException("SQL input is invalid");
 		}
 
-		if (null == sqlInput.getType() || !"sql-select".equals(sqlInput.getType())) {
-			throw new GWBadRequestException("Type of query is invalid");
-		}
-
 		if (null == sqlInput.getStmt() || sqlInput.getStmt().trim().length() == 0) {
 			throw new GWBadRequestException("Statement is invalid");
 		}
@@ -171,4 +169,65 @@ public class Validation {
 			throw new GWBadRequestException("Invalid character(s) found");
 		}
 	}
+
+	/**
+	 * Checks if is valid authentication method.
+	 *
+	 * @param authenticationMethod the authentication method
+	 * @return true, if is valid authentication method
+	 */
+	public static boolean isValidAuthenticationMethod(String authenticationMethod) {
+		for (AuthenticationMethod item : AuthenticationMethod.values()) {
+			if (authenticationMethod.equals(item.value)) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	/**
+	 * Checks if is valid IPv4 address.
+	 *
+	 * @param ipAddress the ip
+	 * @return true, if is valid IPv4 address
+	 */
+	public static boolean isValidIPAddress(String ipAddress) {
+		try {
+			if (ipAddress == null || ipAddress.isEmpty()) {
+				return false;
+			}
+			String[] parts = ipAddress.split("\\.");
+			if (parts.length != 4) {
+				return false;
+			}
+			for (String s : parts) {
+				int i = Integer.parseInt(s);
+				if ((i < 0) || (i > 255)) {
+					return false;
+				}
+			}
+			if (ipAddress.endsWith(Constants.DOT_CHARACTER)) {
+				return false;
+			}
+			return true;
+		} catch (NumberFormatException nfe) {
+			return false;
+		}
+	}
+
+	/**
+	 * Checks if is valid the SSL mode.
+	 *
+	 * @param sslMode the SSL mode
+	 * @return true, if is valid the SSL mode
+	 */
+	public static boolean isValidSslMode(String sslMode) {
+		for (SslMode item : SslMode.values()) {
+			if (sslMode.equals(item.name().toString())) {
+				return true;
+			}
+		}
+		return false;
+	}
+
 }

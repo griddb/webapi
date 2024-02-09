@@ -282,6 +282,8 @@ public class GWExceptionHandler {
 		switch (errCode) {
 		case 10005:
 		case 10053:
+		case 10100:
+		case 10102:
 			return new ResponseEntity<>(error, HttpStatus.UNAUTHORIZED);
 
 		default:

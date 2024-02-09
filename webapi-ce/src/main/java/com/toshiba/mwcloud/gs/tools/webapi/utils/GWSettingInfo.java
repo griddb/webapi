@@ -16,6 +16,9 @@
 
 package com.toshiba.mwcloud.gs.tools.webapi.utils;
 
+import com.toshiba.mwcloud.gs.GSException;
+import com.toshiba.mwcloud.gs.tools.webapi.utils.Constants.SslMode;
+import java.util.Properties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -40,13 +43,28 @@ public class GWSettingInfo {
 	private static long maxPutRowSize;
 
 	private static int loginTimeout;
-	
+
 	private static int maxQueryNum;
-	
+
 	private static int maxLimit;
 
-	private static Logger logger;
+	private static String timeZone;
 
+	private static String authenticationMehod;
+
+	private static String notificationInterfaceAddress;
+
+	private static String sslMode;
+
+	private static final Logger logger = (Logger) LoggerFactory.getLogger(GWSettingInfo.class);
+
+	private static String blobPath;
+
+	/**
+	 * Initial setting webapi.
+	 * 
+	 * @throws GWException when unable to get GridStore from GridStoreFactory
+	 */
 	public static void init() throws GWException {
 		setFailoverTimeout(ToolProperties.getMessage(Constants.PROP_FAILOVER_TIMEOUT));
 		setTransactionTimeout(ToolProperties.getMessage(Constants.PROP_TRANSACTION_TIMEOUT));
@@ -59,12 +77,23 @@ public class GWSettingInfo {
 				ToolProperties.getMessage(Constants.PROP_MAX_SYSTEM_PUTROW_SIZE));
 
 		setLoginTimeout(ToolProperties.getMessage(Constants.PROP_LOGIN_TIMEOUT));
-		
+
 		setMaxQueryNum(ToolProperties.getMessage(Constants.PROP_MAX_QUERY_NUM));
 		setMaxLimit(ToolProperties.getMessage(Constants.PROP_MAX_LIMIT));
 
-		logger = LoggerFactory.getLogger(GWSettingInfo.class);
-		
+		// logger = LoggerFactory.getLogger(GWSettingInfo.class);
+
+		// Updated version 4.5
+		setTimeZone(ToolProperties.getMessage(Constants.PROPERTY_TIME_ZONE));
+		// Updated version 4.5
+		setAuthenticationMethod(ToolProperties.getMessage(Constants.PROPERTY_AUTHENTICATION_METHOD));
+		// Updated version 4.5
+		setNotificationInterfaceAddress(
+        ToolProperties.getMessage(Constants.PROPERTY_NOTIFICATION_INTERFACE_ADDRESS));
+		// Updated version 4.5
+		setSslMode(ToolProperties.getMessage(Constants.PROPERTY_SSL_MODE));
+
+		setBlobPath(ToolProperties.getMessage(Constants.PROPERTY_BLOB_PATH));
 	}
 
 	private static void setFailoverTimeout(String value) throws GWException {
@@ -135,6 +164,12 @@ public class GWSettingInfo {
 		return consistensy;
 	}
 
+	/**
+	 * Set max get row size.
+	 *
+	 * @param value value row size
+	 * @param systemValue system value
+	 */
 	public static void setMaxGetRowSize(String value, String systemValue) throws GWException {
 		maxGetRowSize = Constants.MAX_GETROW_SIZE_DEFAULT;
 		if (value != null) {
@@ -195,7 +230,7 @@ public class GWSettingInfo {
 			throw new GWException("property '" + Constants.PROP_MAX_PUTROW_SIZE + "' can not larget than '"
 					+ Constants.PROP_MAX_SYSTEM_PUTROW_SIZE + "' " + maxSystemPutRowSize + ".");
 		}
-		
+
 		int minSystemPutRowSize = Constants.MIN_SYSTEM_PUTROW_SIZE_DEFAULT;
 		if (maxPutRowSize < minSystemPutRowSize) {
 			throw new GWException("property '" + Constants.PROP_MAX_PUTROW_SIZE + "' can not smaller than '"
@@ -254,7 +289,7 @@ public class GWSettingInfo {
 		if (value != null) {
 			try {
 				GWSettingInfo.maxQueryNum = Integer.parseInt(value);
-				
+
 				if (GWSettingInfo.maxQueryNum < Constants.MIN_SYSTEM_QUERY_NUM || GWSettingInfo.maxQueryNum > Constants.MAX_SYSTEM_QUERY_NUM) {
 					throw new GWException("property '" + Constants.PROP_MAX_QUERY_NUM + "' can not smaller than " + Constants.MIN_SYSTEM_QUERY_NUM + " and larger than " + Constants.MAX_SYSTEM_QUERY_NUM);
 				}
@@ -263,7 +298,7 @@ public class GWSettingInfo {
 			}
 		}
 	}
-	
+
 	/**
 	 * Get value of property maxQueryNum
 	 * 
@@ -291,7 +326,7 @@ public class GWSettingInfo {
 			}
 		}
 	}
-	
+
 	/**
 	 * Get value of property maxLimit
 	 * 
@@ -301,5 +336,150 @@ public class GWSettingInfo {
 		return maxLimit;
 	}
 
+	/**
+	 * Set time zone.
+	 *
+	 * @param value value of property
+	 */
+	public static void setTimeZone(String value) {
+		GWSettingInfo.timeZone = value;
+	}
+
+	/**
+	 * Get value of property time zone.
+	 *
+	 * @return Value of property timeZone
+	 */
+	public static String getTimeZone() {
+		return timeZone;
+	}
+
+	/**
+	 * Set authentication method.
+	 *
+	 * @param value value of property
+	 */
+	public static void setAuthenticationMethod(String value) {
+		if (value != null) {
+			if (!Validation.isValidAuthenticationMethod(value)) {
+				throw new GWException(
+						"Authentication method "
+								+ value
+								+ " is incorrect. Correct authentication method are \"LDAP\" and \"INTERNAL\". "
+								+ "When not specified, uses server setting.");
+			}
+			GWSettingInfo.authenticationMehod = value;
+		}
+	}
+
+	/**
+	 * Get value of property authentication method.
+	 *
+	 * @return Value of property authenticationMethod
+	 */
+	public static String getAuthenticationMethod() {
+		return authenticationMehod;
+	}
+
+	/**
+	 * Set notification interface address.
+	 *
+	 * @param value value of property
+	 */
+	public static void setNotificationInterfaceAddress(String value) {
+		if (value != null) {
+			if (!Validation.isValidIPAddress(value)) {
+				throw new GWException(
+						"Notification interface address "
+								+ value
+								+ " is invalid. Change notification interface address to valid IP address (IPv4)."
+								+ " When not specified, uses address depends on the OS.");
+			}
+			GWSettingInfo.notificationInterfaceAddress = ConversionUtils.formatValidIPAddress(value);
+		}
+	}
+
+	/**
+	 * Get value of property notification interface address.
+	 *
+	 * @return Value of property notificationInterfaceAddress
+	 */
+	public static String getNotificationInterfaceAddress() {
+		return notificationInterfaceAddress;
+	}
+
+	/**
+	 * Set SSL Mode.
+	 *
+	 * @param value value of property
+	 */
+	public static void setSslMode(String value) {
+		if (value != null) {
+			if (!Validation.isValidSslMode(value)) {
+				throw new GWException(
+						"SSL mode "
+								+ value
+								+ " is incorrect. Correct SSL mode are \"DISABLED\", \"PREFERRED\" and \"VERIFY\"."
+								+ " When not specified, uses \"DISABLED\" as default.");
+			}
+			GWSettingInfo.sslMode = SslMode.valueOf(value).getValue();
+		} else {
+			GWSettingInfo.sslMode = SslMode.DISABLED.toString();
+		}
+	}
+
+	/**
+	 * Get value of property SSL mode.
+	 *
+	 * @return Value of SSL mode
+	 */
+	public static String getSslMode() {
+		return sslMode;
+	}
+
+	/**
+	 * Set properties.
+	 *
+	 * @param props properties
+	 */
+	public static void setOptionalProperty(Properties props) {
+		// set time zone property
+		String timeZone = GWSettingInfo.getTimeZone();
+		if (timeZone != null && !timeZone.trim().equals("")) {
+			props.setProperty(Constants.PROPERTY_TIME_ZONE, timeZone);
+		}
+		// set authentication method
+		String authenticationMethod = GWSettingInfo.getAuthenticationMethod();
+		if (authenticationMethod != null && !authenticationMethod.trim().equals("")) {
+			props.setProperty(Constants.AUTHENTICATION_METHOD, authenticationMethod);
+		}
+		// set notification interface address
+		String notificationInterfaceAddress = GWSettingInfo.getNotificationInterfaceAddress();
+		if (notificationInterfaceAddress != null && !notificationInterfaceAddress.trim().equals("")) {
+			props.setProperty(
+					Constants.PROPERTY_NOTIFICATION_INTERFACE_ADDRESS, notificationInterfaceAddress);
+		}
+		// set SSL mode
+		String sslMode = GWSettingInfo.getSslMode();
+		if (! SslMode.DISABLED.toString().equals(sslMode)) {
+			props.setProperty(Constants.PROPERTY_SSL_MODE, sslMode);
+		}
+	}
+
+	/**
+	 * set directory path of blob data.
+	 * @param blobPath directory path of blob data
+	 */
+	public static void setBlobPath(String blobPath) {
+		GWSettingInfo.blobPath = blobPath;
+	}
+
+	/**
+	 * get directory path of blob data.
+	 * @return directory path of blob data
+	 */
+	public static String getBlobPath() {
+		return blobPath;
+	}
 	
 }

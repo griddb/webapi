@@ -27,6 +27,7 @@ import com.toshiba.mwcloud.gs.ContainerType;
 import com.toshiba.mwcloud.gs.GSException;
 import com.toshiba.mwcloud.gs.GSType;
 import com.toshiba.mwcloud.gs.GridStore;
+import com.toshiba.mwcloud.gs.experimental.ExperimentalTool;
 import com.toshiba.mwcloud.gs.tools.webapi.dto.GWContainerInfo;
 import com.toshiba.mwcloud.gs.tools.webapi.dto.GWContainerListOuput;
 import com.toshiba.mwcloud.gs.tools.webapi.dto.GWPutRowOutput;
@@ -157,6 +158,7 @@ public interface WebAPIService {
 	 *  <li>Call function {@link GWUser#getUserfromAuthorization(String)} to get {@link GWUser} from authorization</li>
 	 *  <li>Call function {@link Validation#validateInputParams(GWQueryParams)} to validate input parameters</li>
 	 *  <li>Call function {@link GridStoreUtils#getGridStore(String, String, String, String)} to get the information of the target cluster</li>
+	 *  <li>Call function {@link ExperimentalTool#getExtendedContainerInfo(GridStore, String)} to get the extended container information</li>
 	 *  <li>Call function {@link GridStore#getContainerInfo(String)} to get the container information</li>
 	 *  <li>If container information is null, throw a {@link GWNotFoundException} exception</li>
 	 *  <li>Call function Container.query(String) to execute query</li>
@@ -254,6 +256,7 @@ public interface WebAPIService {
 	 *  <li>Check authorization</li>
 	 *  <li>Call function {@link GWUser#getUserfromAuthorization(String)} to get {@link GWUser} from authorization</li>
 	 *  <li>Call function {@link GridStoreUtils#getGridStore(String, String, String, String)} to get the information of the target cluster</li>
+	 *  <li>Call function {@link ExperimentalTool#getExtendedContainerInfo(GridStore, String)} to get the extended container information</li>
 	 *  <li>Call function {@link GridStore#getContainerInfo(String)} to get the container information</li>
 	 *  <li>If container information is not null, throw a {@link GWBadRequestException} exception</li>
 	 *  <li>Call function {@code ConversionUtils#convertToContainerInfo(GWContainerInfo)} to convert {@code gwContainerInfo} to {@link ContainerInfo}</li>

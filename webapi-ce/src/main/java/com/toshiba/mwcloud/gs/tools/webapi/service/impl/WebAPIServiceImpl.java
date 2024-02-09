@@ -16,6 +16,8 @@
 
 package com.toshiba.mwcloud.gs.tools.webapi.service.impl;
 
+import java.io.File;
+import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.sql.Blob;
 import java.sql.Connection;
@@ -23,8 +25,13 @@ import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.sql.Timestamp;
 import java.sql.Types;
 import java.text.ParseException;
+import java.time.ZoneId;
+import java.time.ZoneOffset;
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
@@ -46,6 +53,11 @@ import com.toshiba.mwcloud.gs.IndexType;
 import com.toshiba.mwcloud.gs.Query;
 import com.toshiba.mwcloud.gs.Row;
 import com.toshiba.mwcloud.gs.RowSet;
+import com.toshiba.mwcloud.gs.TimeUnit;
+import com.toshiba.mwcloud.gs.TimestampUtils;
+import com.toshiba.mwcloud.gs.experimental.ExperimentalTool;
+import com.toshiba.mwcloud.gs.experimental.ExtendedContainerInfo;
+import com.toshiba.mwcloud.gs.tools.common.data.MetaContainerFileIO;
 import com.toshiba.mwcloud.gs.tools.webapi.dto.GWContainerInfo;
 import com.toshiba.mwcloud.gs.tools.webapi.dto.GWContainerListOuput;
 import com.toshiba.mwcloud.gs.tools.webapi.dto.GWPutRowOutput;
@@ -64,6 +76,7 @@ import com.toshiba.mwcloud.gs.tools.webapi.exception.GWException;
 import com.toshiba.mwcloud.gs.tools.webapi.exception.GWNotFoundException;
 import com.toshiba.mwcloud.gs.tools.webapi.exception.GWResourceConflictedException;
 import com.toshiba.mwcloud.gs.tools.webapi.service.WebAPIService;
+import com.toshiba.mwcloud.gs.tools.webapi.utils.BlobUtils;
 import com.toshiba.mwcloud.gs.tools.webapi.utils.ConnectionThread;
 import com.toshiba.mwcloud.gs.tools.webapi.utils.ConnectionUtils;
 import com.toshiba.mwcloud.gs.tools.webapi.utils.Constants;
@@ -73,6 +86,7 @@ import com.toshiba.mwcloud.gs.tools.webapi.utils.DateFormatUtils;
 import com.toshiba.mwcloud.gs.tools.webapi.utils.GWSettingInfo;
 import com.toshiba.mwcloud.gs.tools.webapi.utils.GWUser;
 import com.toshiba.mwcloud.gs.tools.webapi.utils.GridStoreUtils;
+import com.toshiba.mwcloud.gs.tools.webapi.utils.Messages;
 import com.toshiba.mwcloud.gs.tools.webapi.utils.Validation;
 
 import ch.qos.logback.classic.Logger;
@@ -339,8 +353,9 @@ public class WebAPIServiceImpl implements WebAPIService {
 	private Object executeTQL(GridStore gridStore, String container, String statement, ArrayList<String> selectedFields)
 			throws GSException, GWException, UnsupportedEncodingException, SQLException {
 		GWTQLOutput result = new GWTQLOutput();
+		ExtendedContainerInfo extendedContainerInfo = ExperimentalTool.getExtendedContainerInfo(gridStore, container);
 		ContainerInfo containerInfo = gridStore.getContainerInfo(container);
-		if (null == containerInfo) {
+		if (null == extendedContainerInfo || null == containerInfo) {
 			throw new GWNotFoundException("Container not existed");
 		}
 
@@ -361,6 +376,7 @@ public class WebAPIServiceImpl implements WebAPIService {
 					gwTQLColumnInfo.setName(selectedField);
 					int index = listColumnNames.indexOf(selectedField);
 					gwTQLColumnInfo.setType(containerInfo.getColumnInfo(index).getType());
+					gwTQLColumnInfo.setTimePrecision(containerInfo.getColumnInfo(index).getTimePrecision());
 					columns.add(gwTQLColumnInfo);
 					selectedColumns.add(index);
 				} else {
@@ -372,6 +388,7 @@ public class WebAPIServiceImpl implements WebAPIService {
 				GWTQLColumnInfo gwTQLColumnInfo = new GWTQLColumnInfo();
 				gwTQLColumnInfo.setName(containerInfo.getColumnInfo(i).getName());
 				gwTQLColumnInfo.setType(containerInfo.getColumnInfo(i).getType());
+				gwTQLColumnInfo.setTimePrecision(containerInfo.getColumnInfo(i).getTimePrecision());
 				columns.add(gwTQLColumnInfo);
 			}
 		}
@@ -426,6 +443,7 @@ public class WebAPIServiceImpl implements WebAPIService {
 				GWTQLOutputAggregation resultAggregation = new GWTQLOutputAggregation();
 				List<List<Object>> rows = new ArrayList<>();
 				GSType type = null;
+				TimeUnit precision = null;
 				if (((AggregationResult) object).getDouble() != null) {
 					Object row = ((AggregationResult) object).getDouble();
 					List<Object> listObject = new ArrayList<>();
@@ -433,9 +451,21 @@ public class WebAPIServiceImpl implements WebAPIService {
 					rows.add(listObject);
 					type = GSType.DOUBLE;
 				} else if (((AggregationResult) object).getTimestamp() != null) {
-					Object row = ((AggregationResult) object).getTimestamp();
+					AggregationResult agg = (AggregationResult) object;
+					// AggregationResult has exactly 1 column
+					ColumnInfo columnInfo = rowSet.getSchema().getColumnInfo(0);
+					precision = columnInfo.getTimePrecision();
+					String timeStr = "";
+					if(MetaContainerFileIO.isPreciseColumn(columnInfo)) {
+						Timestamp timestamp = agg.getPreciseTimestamp();
+						timeStr = formatTimestamp(timestamp, precision);
+					} else {
+						Date timestamp = agg.getTimestamp();
+						timeStr = formatDate(timestamp);
+					}
+
 					List<Object> listObject = new ArrayList<>();
-					listObject.add(row);
+					listObject.add(timeStr);
 					rows.add(listObject);
 					type = GSType.TIMESTAMP;
 				}
@@ -443,6 +473,7 @@ public class WebAPIServiceImpl implements WebAPIService {
 				GWTQLColumnInfo colInf = new GWTQLColumnInfo();
 				colInf.setName("aggregationResult");
 				colInf.setType(type);
+				colInf.setTimePrecision(precision);
 				List<GWTQLColumnInfo> colInfList = new ArrayList<>();
 				colInfList.add(colInf);
 				resultAggregation.setColumns(colInfList);
@@ -464,10 +495,10 @@ public class WebAPIServiceImpl implements WebAPIService {
 	/**
 	 * Count the total result from TQL without limit and offset option
 	 * 
-	 * @param cont
-	 * @param statement
-	 * @return
-	 * @throws GSException
+	 * @param cont container information
+	 * @param statement statement
+	 * @return total result from TQL
+	 * @throws GSException GSException
 	 */
 	private long countTotalOfBaseTQL(Container<?, ?> cont, String statement) throws GSException {
 		long total = 0;
@@ -501,7 +532,21 @@ public class WebAPIServiceImpl implements WebAPIService {
 			Row row = (Row) object;
 			List<Object> listObject = new ArrayList<Object>();
 			for (int colNo : selectedColumns) {
-				long size = stringify(listObject, row.getValue(colNo), containerInfo.getColumnInfo(colNo).getType());
+				long size = 0;
+				GSType type = containerInfo.getColumnInfo(colNo).getType();
+				if (type == GSType.TIMESTAMP) {
+					size = stringifyTimestamp(row, colNo, listObject);
+				} else {
+					size = stringify(
+							listObject,
+							row.getValue(colNo),
+							type,
+							false,
+							null,
+							null,
+							null,
+							null);
+				}
 				rowsize += size;
 			}
 			if (rowsize > rowMaxSize) {
@@ -529,11 +574,15 @@ public class WebAPIServiceImpl implements WebAPIService {
 		GridStore gridStore = null;
 		try {
 			gridStore = GridStoreUtils.getGridStore(cluster, database, user.getUsername(), user.getPassword());
+		ExtendedContainerInfo extendContainerInfo =
+				ExperimentalTool.getExtendedContainerInfo(gridStore, container);
 			ContainerInfo containerInfo = gridStore.getContainerInfo(container);
-			if (containerInfo == null) {
+			if (extendContainerInfo == null || containerInfo == null) {
 				throw new GWNotFoundException("Container not existed");
 			}
 			Container<Object, Row> cont = null;
+		switch (extendContainerInfo.getAttribute()) {
+		case SINGLE:
 			cont = gridStore.getContainer(container);
 			if (null == cont) {
 				throw new GWNotFoundException("Container not existed");
@@ -549,10 +598,17 @@ public class WebAPIServiceImpl implements WebAPIService {
 				GWTQLColumnInfo gwTQLColumnInfo = new GWTQLColumnInfo();
 				gwTQLColumnInfo.setName(containerInfo.getColumnInfo(i).getName());
 				gwTQLColumnInfo.setType(containerInfo.getColumnInfo(i).getType());
+				gwTQLColumnInfo.setTimePrecision(containerInfo.getColumnInfo(i).getTimePrecision());
 				columns.add(gwTQLColumnInfo);
 			}
 
 			result.setColumns(columns);
+			break;
+		case LARGE:
+			throw new GWBadRequestException("Unsupported partition table type");
+		default:
+			throw new GWNotFoundException("Container not existed");
+		}
 
 			result.setLimit(Math.min(queryParams.getLimit(), GWSettingInfo.getMaxLimit()));
 			result.setOffset(queryParams.getOffset());
@@ -589,7 +645,21 @@ public class WebAPIServiceImpl implements WebAPIService {
 			int columnCount = containerInfo.getColumnCount();
 			List<Object> list = new ArrayList<Object>(columnCount);
 			for (int colNo = 0; colNo < columnCount; ++colNo) {
-				long size = stringify(list, row.getValue(colNo), containerInfo.getColumnInfo(colNo).getType());
+				long size = 0;
+				GSType type = containerInfo.getColumnInfo(colNo).getType();
+				if (type == GSType.TIMESTAMP) {
+					size = stringifyTimestamp(row, colNo, list);
+				} else {
+					size = stringify(
+							list,
+							row.getValue(colNo),
+							type,
+							false,
+							null,
+							null,
+							null,
+							null);
+				}
 				rowsize += size;
 			}
 			if (rowsize > rowMaxSize) {
@@ -608,12 +678,26 @@ public class WebAPIServiceImpl implements WebAPIService {
 		List<List<Object>> rows = new ArrayList<List<Object>>();
 		long rowMaxSize = GWSettingInfo.getMaxGetRowSize();
 		long rowsize = 0;
-		while(rowSet.hasNext()) {
+		while (rowSet.hasNext()) {
 			Row row = rowSet.next();
 			int columnCount = containerInfo.getColumnCount();
 			List<Object> list = new ArrayList<Object>(columnCount);
 			for (int colNo = 0; colNo < columnCount; ++colNo) {
-				long size = stringify(list, row.getValue(colNo), containerInfo.getColumnInfo(colNo).getType());
+				long size = 0;
+				GSType type = containerInfo.getColumnInfo(colNo).getType();
+				if (type == GSType.TIMESTAMP) {
+					size = stringifyTimestamp(row, colNo, list);
+				} else {
+					size = stringify(
+							list,
+							row.getValue(colNo),
+							type,
+							false,
+							null,
+ 							null,
+							null,
+							null);
+				}
 				rowsize += size;
 			}
 			if (rowsize > rowMaxSize) {
@@ -623,8 +707,32 @@ public class WebAPIServiceImpl implements WebAPIService {
 		}
 		return rows;
 	}
-	
-	private long stringify(List<Object> list, Object data, GSType type)
+
+	/**
+	 * Convert object to specific data type.
+	 *
+	 * @param list list of object
+	 * @param data object data
+	 * @param type type of column
+	 * @param isBlobFile - true: input blob data by file, false: input blob data by base64
+	 * @param columnName which column is used for set the name of BLOB data file.
+	 * @param row current row
+	 * @param columnNames list column of a row
+	 * @param sourcePath directory where to save BLOB data
+	 * @return size of data
+	 * @throws GWException internal server exception
+	 * @throws SQLException internal SQL exception
+	 * @throws UnsupportedEncodingException exception when encoding data type {@link String}
+	 */
+	public long stringify(
+			List<Object> list,
+			Object data,
+			GSType type,
+			Boolean isBlobFile,
+			String columnName,
+			Row row,
+			List<String> columnNames,
+			String sourcePath)
 			throws GWException, SQLException, UnsupportedEncodingException {
 
 		Object reObj = data;
@@ -635,7 +743,7 @@ public class WebAPIServiceImpl implements WebAPIService {
 		long size = 0;
 		switch (type) {
 		case TIMESTAMP:
-			reObj = DateFormatUtils.format((Date) data);
+			reObj = formatDate((Date) data);
 			size = Constants.SIZE_TIMESTAMP;
 			break;
 		case GEOMETRY:
@@ -646,12 +754,29 @@ public class WebAPIServiceImpl implements WebAPIService {
 
 		case BLOB:
 			Blob blob = (Blob) data;
-			if (blob == null) {
-				reObj = null;
-			} else if (blob.length() == 0) {
-				reObj = "";
+			if (!isBlobFile) {
+				if (blob == null) {
+					reObj = null;
+				} else if (blob.length() == 0) {
+					reObj = "";
+				} else {
+					reObj = BlobUtils.toBase64String(blob);
+					size = reObj.toString().length();
+				}
 			} else {
-				reObj = "";
+				if (blob.length() == 0) {
+					reObj = "";
+				}
+			else {
+				try {
+					reObj = "(BLOB)" + getBlobData(columnNames, columnName, row, blob, sourcePath);
+					} catch (IOException e) {
+						logger.error(e.getMessage(), e);
+					} catch (SQLException e) {
+						logger.error(e.getMessage(), e);
+					}
+					size = reObj.toString().length();
+				}
 			}
 			break;
 
@@ -670,7 +795,7 @@ public class WebAPIServiceImpl implements WebAPIService {
 			String[] tmp = new String[dateArray.length];
 			int k = 0;
 			for (; k < dateArray.length; ++k) {
-				tmp[k] = DateFormatUtils.format(dateArray[k]);
+				tmp[k] = formatDate(dateArray[k]);
 			}
 			reObj = tmp;
 			size = Constants.SIZE_TIMESTAMP * k;
@@ -732,7 +857,47 @@ public class WebAPIServiceImpl implements WebAPIService {
 		return size;
 	}
 
-	private String buildQueryString(String containerName, GWQueryParams queryParams) {
+	/**
+	 * Convert timestamp into string
+	 * @param row the current row
+	 * @param columnIndex the column index of the current row
+	 * @param list list of object
+	 * @param containerInfo the container that contain the current row
+	 * @return size of data
+	 */
+	public long stringifyTimestamp(Row row, int columnIndex, List<Object> list) throws GSException {
+		long size = 0;
+		Object reObj = row.getValue(columnIndex);
+		if (reObj == null) {
+			list.add(null);
+			return 0;
+		}
+		ColumnInfo columnInfo = row.getSchema().getColumnInfo(columnIndex);
+		if (MetaContainerFileIO.isPreciseColumn(columnInfo)) {
+			reObj = formatTimestamp((Timestamp) reObj, columnInfo.getTimePrecision());
+			if (columnInfo.getTimePrecision() == TimeUnit.NANOSECOND) {
+				size = Constants.SIZE_TIMESTAMP_NANOSECOND;
+			} else {
+				size = Constants.SIZE_TIMESTAMP_MICROSECOND;
+			}
+		} else {
+			reObj = formatDate((Date) reObj);
+			size  = Constants.SIZE_TIMESTAMP;
+		}
+		list.add(reObj);
+		return size;
+	}
+
+
+
+	/**
+	 * build Query string.
+	 *
+	 * @param containerName container name
+	 * @param queryParams a {@link GWQueryParams} object
+	 * @return result a {@link String}
+	 */
+	public String buildQueryString(String containerName, GWQueryParams queryParams) {
 		String query = "select * from " + containerName;
 
 		if (queryParams != null) {
@@ -763,7 +928,14 @@ public class WebAPIServiceImpl implements WebAPIService {
 		return query;
 	}
 
-	private String buildQueryStringWithoutLimitAndOffset(String containerName, GWQueryParams queryParams) {
+	/**
+	 * build Query string without limit and offset.
+	 *
+	 * @param containerName container name
+	 * @param queryParams a {@link GWQueryParams} object
+	 * @return result a {@link String}
+	 */
+	public String buildQueryStringWithoutLimitAndOffset(String containerName, GWQueryParams queryParams) {
 		String query = "select count(*) from " + containerName;
 		if (queryParams != null) {
 			if (queryParams.getCondition() != null && queryParams.getCondition() != "") {
@@ -793,16 +965,6 @@ public class WebAPIServiceImpl implements WebAPIService {
 			ContainerInfo containerInfo = gridStore.getContainerInfo(container);
 			if (null == containerInfo) {
 				throw new GWNotFoundException("Container not existed");
-			}
-
-			for (int i = 0; i < containerInfo.getColumnCount(); i++) {
-				ColumnInfo columnInfo = containerInfo.getColumnInfo(i);
-				switch (columnInfo.getType()) {
-				case BLOB:
-					throw new GWBadRequestException("Column type BLOB is not supported");
-				default:
-					break;
-				}
 			}
 
 			cont = gridStore.getContainer(container);
@@ -837,7 +999,21 @@ public class WebAPIServiceImpl implements WebAPIService {
 
 	}
 
-	private long setRowValue(List<Object> values, List<Row> rows, Container<Object, Row> container,
+	/**
+	 * Set value for row.
+	 *
+	 * @param values list of value
+	 * @param rows list of row need set value
+	 * @param container container contain rows
+	 * @param containerInfo container infomation
+	 * @param rowNumber number of rows
+	 * @param rowSize size of row
+	 * @param rowMaxSize max size of rows
+	 * @return size of rows
+	 * @throws GSException internal server exception
+	 * @throws UnsupportedEncodingException exception when encoding data type {@link String}
+	 */
+	public long setRowValue(List<Object> values, List<Row> rows, Container<Object, Row> container,
 			ContainerInfo containerInfo, int rowNumber, long rowSize, long rowMaxSize)
 			throws GSException, UnsupportedEncodingException {
 
@@ -848,7 +1024,7 @@ public class WebAPIServiceImpl implements WebAPIService {
 		int i = 0;
 		for (Object value : values) {
 			try {
-				rowSize += setRowValue(container, row, containerInfo.getColumnInfo(i).getType(), value, i++);
+				rowSize += setRowValue(container, row, containerInfo.getColumnInfo(i).getType(), value, i++, false, null);
 			} catch (Exception e) {
 				throw new GWBadRequestException(e.getMessage());
 			}
@@ -860,7 +1036,20 @@ public class WebAPIServiceImpl implements WebAPIService {
 		return rowSize;
 	}
 
-	private long setRowValue(Container<?, Row> container, Row row, GSType columnType, Object value, int columnNum)
+	/**
+	 * Set value for row.
+	 *
+	 * @param container - The Container contain row
+	 * @param row - Row data
+	 * @param columnType - Column type of data
+	 * @param value - value set to row
+	 * @param columnNum - index of column
+	 * @param isBlobFile - true: input blob data by file, false: input blob data by base64
+	 * @param filePath - file path of blob data
+	 * @return size of row
+	 * @throws Exception {@link Exception}
+	 */
+	public long setRowValue(Container<?, Row> container, Row row, GSType columnType, Object value, int columnNum, Boolean isBlobFile, String filePath)
 			throws Exception {
 		long size = 0;
 		if (value == null) {
@@ -913,8 +1102,16 @@ public class WebAPIServiceImpl implements WebAPIService {
 		case TIMESTAMP:
 			if (value instanceof String) {
 				try {
-					Date tmp = DateFormatUtils.parse((String) value);
-					row.setTimestamp(columnNum, tmp);
+					String timestampStr = (String) value;
+					ColumnInfo columnInfo = row.getSchema().getColumnInfo(columnNum);
+					if (MetaContainerFileIO.isPreciseColumn(columnInfo)) {
+						Timestamp timestamp = TimestampUtils.parsePrecise(timestampStr);
+						row.setPreciseTimestamp(columnNum, timestamp);
+					}
+					else {
+						Date date = DateFormatUtils.parse(timestampStr);
+						row.setTimestamp(columnNum, date);
+					}
 				} catch (Exception e) {
 					throw new GWException("The specified data cannot be converted to TIMESTAMP type.");
 				}
@@ -938,7 +1135,36 @@ public class WebAPIServiceImpl implements WebAPIService {
 			break;
 
 		case BLOB:
-			throw new GWException("Unsupport binary.");
+			if (!isBlobFile) {
+				if (value instanceof String) {
+					try {
+						Blob blob = BlobUtils.toBlob((String) value);
+						row.setBlob(columnNum, blob);
+						size = ((String) value).length();
+					} catch (Exception e) {
+						throw new GWException("The specified data cannot be converted to BLOB type.");
+					}
+				} else {
+					throw new GWException("The specified data cannot be converted to BLOB type.");
+				}
+			} else {
+				if (value instanceof String) {
+					String fileName = (String) value;
+					if (fileName == null || fileName.trim().isEmpty()) {
+						row.setNull(columnNum);
+					} else {
+						try {
+							Blob blob = BlobUtils.readBlob(filePath + File.separator + value, container);
+							row.setBlob(columnNum, blob);
+						} catch (Exception ex) {
+							throw new GWException(Messages.FILE_BLOB_NOT_FOUND + ": " + value);
+						}
+					}
+				} else {
+					throw new GWException("Can not read blob file.");
+				}
+			}
+			break;
 
 		case BOOL_ARRAY:
 			if (value instanceof List<?>) {
@@ -1143,8 +1369,10 @@ public class WebAPIServiceImpl implements WebAPIService {
 		try {
 			gridStore = GridStoreUtils.getGridStore(cluster, database, user.getUsername(), user.getPassword());
 			// Check existence of container
+			ExtendedContainerInfo extendedContainerInfo =
+					ExperimentalTool.getExtendedContainerInfo(gridStore, container);
 			ContainerInfo containerInfo = gridStore.getContainerInfo(container);
-			if (null == containerInfo) {
+			if (null == extendedContainerInfo || null == containerInfo) {
 				throw new GWNotFoundException("Container not existed");
 			}
 			if (!containerInfo.isRowKeyAssigned()) {
@@ -1219,8 +1447,9 @@ public class WebAPIServiceImpl implements WebAPIService {
 			gridStore = GridStoreUtils.getGridStore(cluster, database, user.getUsername(), user.getPassword());
 			// Check if container name is already existed
 			String containername = gwContainerInfo.getContainer_name();
+			ExtendedContainerInfo extendedContainerInfo = ExperimentalTool.getExtendedContainerInfo(gridStore, containername);
 			ContainerInfo containerInfo = gridStore.getContainerInfo(containername);
-			if (null != containerInfo) {
+			if (null != extendedContainerInfo || null != containerInfo) {
 				throw new GWResourceConflictedException("Container already existed");
 			} else {
 				ContainerInfo contInfo = ConversionUtils.convertToContainerInfo(gwContainerInfo);
@@ -1260,15 +1489,14 @@ public class WebAPIServiceImpl implements WebAPIService {
 	}
 
 	/**
-	 * Get total rows
-	 * 
-	 * @param cont
-	 * @param statement
-	 *            a 'select count(*)' statement
+	 * Get total rows.
+	 *
+	 * @param cont Container information
+	 * @param statement a 'select count(*)' statement
 	 * @return the number of rows
-	 * @throws GSException
+	 * @throws GSException GSException
 	 */
-	private long getRowsCount(Container<?, ?> cont, String statement) throws GSException {
+	public long getRowsCount(Container<?, ?> cont, String statement) throws GSException {
 		long rowsCount = 0;
 		RowSet<AggregationResult> rowSet = cont.query(statement, AggregationResult.class).fetch();
 		while (rowSet.hasNext()) {
@@ -1291,7 +1519,7 @@ public class WebAPIServiceImpl implements WebAPIService {
 			throw new GWBadRequestException("List of SQL is empty");
 		}
 
-		if(listSQLInput.size() > GWSettingInfo.getMaxQueryNum()){
+		if (listSQLInput.size() > GWSettingInfo.getMaxQueryNum()) {
 			throw new GWBadRequestException("Exceed maximum of SQLs that can be executed");
 		}
 
@@ -1312,7 +1540,19 @@ public class WebAPIServiceImpl implements WebAPIService {
 		return result;
 	}
 
-	private GWSQLOutput executeSQL(String username, String password, String cluster, String database, GWSQLInput input)
+	/**
+	 * Execute SQL select.
+	 *
+	 * @param username user name
+	 * @param password password
+	 * @param cluster cluster name
+	 * @param database database name in cluster
+	 * @param input a {@link GWSQLInput} object
+	 * @return sqlResult a {@link GWSQLOutput} object
+	 * @throws SQLException SQL Exception
+	 * @throws UnsupportedEncodingException UnsupportedEncodingException
+	 */
+	public GWSQLOutput executeSQL(String username, String password, String cluster, String database, GWSQLInput input)
 			throws SQLException, UnsupportedEncodingException {
 		GWSQLOutput sqlResult = new GWSQLOutput();
 
@@ -1385,13 +1625,27 @@ public class WebAPIServiceImpl implements WebAPIService {
 		for (int i = 1; i <= md.getColumnCount(); i++) {
 			GWSQLColumnInfo columnInfo = new GWSQLColumnInfo();
 			String columnName = md.getColumnName(i);
-			if (columnName.equals("")) {
-				columnInfo.setName("aggregationResult");
-			} else {
 				columnInfo.setName(columnName);
-			}
-
 			columnInfo.setType(md.getColumnTypeName(i));
+			// getPrecision(): In the case of the date and time type, the value according to the accuracy (3/6/9), the others are 0
+			int jdbcPrecision = md.getPrecision(i);
+			TimeUnit precision = null;
+			switch (jdbcPrecision) {
+			case 9:
+				precision = TimeUnit.NANOSECOND;
+				break;
+			case 6:
+				precision = TimeUnit.MICROSECOND;
+				break;
+			case 3:
+				precision = TimeUnit.MILLISECOND;
+				break;
+			default:
+				precision = null;
+				break;
+			}
+			columnInfo.setTimePrecision(precision);
+
 			columns.add(columnInfo);
 		}
 
@@ -1438,11 +1692,15 @@ public class WebAPIServiceImpl implements WebAPIService {
 			}
 			break;
 		case Types.BLOB:
-			rs.getString(i);
-			if (rs.wasNull()) {
+			Blob blob = rs.getBlob(i);
+			if (blob == null) {
 				list.add(null);
-			} else {
+			} else if (blob.length() == 0) {
 				list.add("");
+			} else {
+				String base64String = BlobUtils.toBase64String(blob);
+				list.add(base64String);
+				size = base64String.length();
 			}
 			break;
 		case Types.DOUBLE:
@@ -1518,5 +1776,90 @@ public class WebAPIServiceImpl implements WebAPIService {
 		return size;
 	}
 
+	/**
+	 * get date formatter.
+	 *
+	 * @return {@link String}
+	 */
+	private String formatDate(Date date) {
+		final DateTimeFormatter dateFormatter =
+				DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSSXXX");
+		// V4.3 タイムゾーン設定
+		// (設計メモ)gs_shと異なり、文字列の検証はしない。接続時にエラーとなる。
+		String timeZone = GWSettingInfo.getTimeZone();
+		// (設計メモ)下記はgs_sh DataCommandClass.getRowを参考にしている。
+		// 異なるのは、デフォルトのプロパティである空文字の際はUTCにしている点。
+		ZonedDateTime zdt = null;
+		if (timeZone == null || timeZone.equals("")) {
+			// タイムゾーン設定がない場合はUTC
+			zdt = ZonedDateTime.ofInstant(date.toInstant(), ZoneId.of("UTC"));
+		} else if ("auto".equals(timeZone)) {
+			// タイムゾーン設定がautoの場合はシステムデフォルト
+			zdt = ZonedDateTime.ofInstant(date.toInstant(), ZoneId.systemDefault());
+		} else {
+			// タイムゾーン設定がある場合は設定値を反映
+			zdt = ZonedDateTime.ofInstant(date.toInstant(), ZoneOffset.of(timeZone));
+		}
+		return zdt.format(dateFormatter);
+	}
+
+	/**
+	 * Convert timestamp to string base on its precision
+	 * @param timestamp the timestamp to convert
+	 * @param precisionUnit unit of timestamp
+	 * @return formatted string of timestamp
+	 */
+	private String formatTimestamp(Timestamp timestamp, TimeUnit precisionUnit) {
+		final DateTimeFormatter dateFormatter = DateFormatUtils.getDateTimeFormatter(precisionUnit);
+		// V4.3 タイムゾーン設定
+		// (設計メモ)gs_shと異なり、文字列の検証はしない。接続時にエラーとなる。
+		String timeZone = GWSettingInfo.getTimeZone();
+
+		// (設計メモ)下記はgs_sh DataCommandClass.getRowを参考にしている。
+		// 異なるのは、デフォルトのプロパティである空文字の際はUTCにしている点。
+		ZonedDateTime zdt = null;
+		if (timeZone == null || timeZone.equals("")) {
+			// タイムゾーン設定がない場合はUTC
+			zdt = ZonedDateTime.ofInstant(timestamp.toInstant(), ZoneId.of("UTC"));
+		} else if ("auto".equals(timeZone)) {
+			// タイムゾーン設定がautoの場合はシステムデフォルト
+			zdt = ZonedDateTime.ofInstant(timestamp.toInstant(), ZoneId.systemDefault());
+		} else {
+			// タイムゾーン設定がある場合は設定値を反映
+			zdt = ZonedDateTime.ofInstant(timestamp.toInstant(), ZoneOffset.of(timeZone));
+		}
+		return zdt.format(dateFormatter);
+	}
+
+	private String getBlobData(
+			List<String> columns, String columnName, Row row, Blob data, String sourcePath)
+			throws IOException, SQLException {
+		if (columnName == null) {
+			return BlobUtils.writeBlob(data, null, sourcePath + "/");
+		}
+		int prefixNumber = 1;
+		String fileName = null;
+		if (columns.contains(columnName)) {
+			int index = columns.indexOf(columnName);
+			Object value = row.getValue(index);
+			String name = "";
+			if (value != null) {
+				name = value.toString();
+			} else {
+				return BlobUtils.writeBlob(data, null, sourcePath + "/");
+			}
+			if (BlobUtils.fileExists(name, sourcePath)) {
+				while (BlobUtils.fileExists(prefixNumber + "_" + name, sourcePath)) {
+					prefixNumber += 1;
+				}
+				fileName = BlobUtils.writeBlob(data, prefixNumber + "_" + name, sourcePath + "/");
+			} else {
+				fileName = BlobUtils.writeBlob(data, name, sourcePath + "/");
+			}
+		} else {
+			fileName = BlobUtils.writeBlob(data, null, sourcePath + "/");
+		}
+		return fileName;
+	}
 
 }

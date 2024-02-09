@@ -16,23 +16,31 @@
 
 package com.toshiba.mwcloud.gs.tools.webapi.dto;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.toshiba.mwcloud.gs.TimeUnit;
+
 public class GWSQLColumnInfo {
 
 	/**
 	 * Name of SQL column
 	 */
 	private String name;
-	
+
 	/**
 	 * Type of SQL column
 	 */
 	private String type;
 	
+
+	/* Precision if column type is TIMESTAMP */
+	@JsonInclude(JsonInclude.Include.NON_NULL)
+	private TimeUnit timePrecision;
+
 	/**
 	 * Constructor for {@link GWColumnInfo}
 	 */
 	public GWSQLColumnInfo(){}
-	
+
 	/**
 	 * Constructor for {@link GWColumnInfo}
 	 * 
@@ -80,5 +88,22 @@ public class GWSQLColumnInfo {
 		this.type = type;
 	}
 	
+	/**
+	 * Get precision if column type is TIMESTAMP
+	 *
+	 * @return the precision of timestamp in TimeUnit
+	*/
+	public TimeUnit getTimePrecision() {
+		return timePrecision;
+	};
+
+	/**
+	 * Set precision if column type is TIMESTAMP
+	 *
+	 * @param precision the precision of timestamp in TimeUnit
+	*/
+	public void setTimePrecision(TimeUnit precision) {
+		this.timePrecision = precision;
+	};
 	
 }

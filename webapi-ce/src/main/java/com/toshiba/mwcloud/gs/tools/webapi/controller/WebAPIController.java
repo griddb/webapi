@@ -472,4 +472,37 @@ public class WebAPIController {
 		return new ResponseEntity<>(gwOutput, HttpStatus.OK);
 	}
 
+	/**
+	 * [SE15] Execute SQL select. <br>
+	 * <br>
+	 * <b>Processing flow:</b>
+	 *
+	 * <ol>
+	 *   <li>Execute SQLs select by calling webApiServiceImpl.executeSQLs(String, String, String, List) function.</li>
+	 * </ol>
+	 *
+	 * @param authorization basic authentication
+	 * @param cluster name of cluster
+	 * @param database name of database
+	 * @param listSqlInput a {@link List} of {@link GWSQLInput}
+	 * @return a {@link ResponseEntity} object with body is a {@link List} of {@link GWSQLOutput} and
+	 *     status {@link HttpStatus#OK}
+	 * @throws GSException internal server exception {@link HttpStatus#INTERNAL_SERVER_ERROR}
+	 * @throws SQLException a {@link SQLException}
+	 * @throws UnsupportedEncodingException a {@link UnsupportedEncodingException}
+	 */
+	@RequestMapping(
+			value = "{cluster}/dbs/{database}/sql/select",
+			method = RequestMethod.POST,
+			produces = "application/json; charset=UTF-8")
+	public ResponseEntity<?> executeSqlSelect(
+			@RequestHeader(name = "Authorization", required = false) String authorization,
+			@PathVariable("cluster") String cluster,
+			@PathVariable("database") String database,
+			@RequestBody List<GWSQLInput> listSqlInput) throws GSException, SQLException, UnsupportedEncodingException {
+
+		List<GWSQLOutput> gwOutput = webAPIServiceImpl.executeSQLs(authorization, cluster, database, listSqlInput);
+		return new ResponseEntity<>(gwOutput, HttpStatus.OK);
+	}
+
 }
