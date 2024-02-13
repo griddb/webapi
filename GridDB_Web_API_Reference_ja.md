@@ -125,7 +125,7 @@ Web APIの動作を設定ファイル(`${GS_WEBAPI_HOME}/conf/griddb_webapi.prop
 Web APIのログは、デフォルトでは下記のディレクトリに出力されます。
 
 ``` example
-/var/lib/gridstore/webapi/log
+${GS_WEBAPI_HOME}/log
 ```
 
 出力先を変更する場合は、下記のファイルを変更してください。

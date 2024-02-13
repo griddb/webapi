@@ -125,7 +125,7 @@ Even without changing the initial settings, Web API can work while all the param
 The Web API logs are output to the following directory by default.
 
 ``` example
-/var/lib/gridstore/webapi/log
+${GS_WEBAPI_HOME}/log
 ```
 
 To change the output directory, edit the following file:
