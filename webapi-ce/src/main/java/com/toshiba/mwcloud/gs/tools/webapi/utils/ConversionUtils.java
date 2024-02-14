@@ -28,6 +28,7 @@ import com.toshiba.mwcloud.gs.ColumnInfo;
 import com.toshiba.mwcloud.gs.ContainerInfo;
 import com.toshiba.mwcloud.gs.GSType;
 import com.toshiba.mwcloud.gs.IndexType;
+import com.toshiba.mwcloud.gs.TimeUnit;
 import com.toshiba.mwcloud.gs.tools.webapi.dto.GWColumnInfo;
 import com.toshiba.mwcloud.gs.tools.webapi.dto.GWContainerInfo;
 import com.toshiba.mwcloud.gs.tools.webapi.exception.GWBadRequestException;
@@ -116,7 +117,11 @@ public class ConversionUtils {
 			return Byte.parseByte(String.valueOf(intValue));
 
 		} else {
-			throw new GWException("The specified data cannot be converted to BYTE type.");
+			try {
+				return Byte.parseByte(String.valueOf(value));
+			} catch (Exception e) {
+				throw new GWException("The specified data cannot be converted to BYTE type.");
+			}
 		}
 	}
 
@@ -147,7 +152,11 @@ public class ConversionUtils {
 			return Short.parseShort(String.valueOf(intValue));
 
 		} else {
-			throw new GWException("The specified data cannot be converted to SHORT type.");
+			try {
+				return Short.parseShort(String.valueOf(value));
+			} catch (Exception e) {
+				throw new GWException("The specified data cannot be converted to SHORT type.");
+			}
 		}
 	}
 
@@ -177,8 +186,14 @@ public class ConversionUtils {
 
 			return Integer.parseInt(String.valueOf(value));
 
+		} else if (value instanceof Integer) {
+			return Integer.parseInt(String.valueOf(value));
 		} else {
-			throw new GWException("The specified data cannot be converted to INTEGER type.");
+			try {
+				return Integer.parseInt(String.valueOf(value));
+			} catch (Exception e) {
+				throw new GWException("The specified data cannot be converted to INTEGER type.");
+			}
 		}
 	}
 
@@ -202,8 +217,14 @@ public class ConversionUtils {
 		} else if ((value instanceof BigInteger) || (value instanceof Long)) {
 			return Long.parseLong(String.valueOf(value));
 
+		} else if ((value instanceof Integer)) {
+			return Long.parseLong(String.valueOf(value));
 		} else {
-			throw new GWException("The specified data cannot be converted to LONG type.");
+			try {
+				return Long.parseLong(String.valueOf(value));
+			} catch (Exception e) {
+				throw new GWException("The specified data cannot be converted to LONG type.");
+			}
 		}
 	}
 
@@ -256,7 +277,11 @@ public class ConversionUtils {
 			}
 			return f;
 		} else {
-			throw new GWException("The specified data cannot be converted to FLOAT type.");
+			try {
+				return Float.parseFloat(String.valueOf(value));
+			} catch (Exception e) {
+				throw new GWException("The specified data cannot be converted to FLOAT type.");
+			}
 		}
 	}
 
@@ -307,7 +332,11 @@ public class ConversionUtils {
 			return Double.parseDouble(String.valueOf(value));
 
 		} else {
-			throw new GWException("The specified data cannot be converted to DOUBLE type.");
+			try {
+				return Double.parseDouble(String.valueOf(value));
+			} catch (Exception e) {
+				throw new GWException("The specified data cannot be converted to DOUBLE type.");
+			}
 		}
 	}
 
@@ -331,6 +360,7 @@ public class ConversionUtils {
 			column.setName(containerInfo.getColumnInfo(i).getName());
 			column.setType(containerInfo.getColumnInfo(i).getType());
 			column.setIndex(containerInfo.getColumnInfo(i).getIndexTypes());
+			column.setTimePrecision(containerInfo.getColumnInfo(i).getTimePrecision());
 			listColumns.add(column);
 		}
 		gwContainerInfo.setColumns(listColumns);
@@ -360,6 +390,16 @@ public class ConversionUtils {
 			}
 			Set<IndexType> indexTypes = listGWColumns.get(i).getIndex();
 			ColumnInfo column = new ColumnInfo(name, type, indexTypes);
+			if (type == GSType.TIMESTAMP) {
+				TimeUnit precision = listGWColumns.get(i).getTimePrecision();
+				if (precision == TimeUnit.MICROSECOND || precision == TimeUnit.NANOSECOND) {
+					ColumnInfo ci = column;
+					ColumnInfo.Builder builder = new ColumnInfo.Builder(ci);
+					builder.setTimePrecision(precision);
+					ColumnInfo tmp = builder.toInfo();
+					column = tmp;
+				}
+			}
 			listColumns.add(column);
 		}
 		containerInfo.setColumnInfoList(listColumns);
@@ -390,6 +430,12 @@ public class ConversionUtils {
 	 */
 	private static final String TQL_FIND_LIMIT_OFFSET_VALUE_REGEX = ".*LIMIT\\s+([0-9]+)\\s*(?:\\sOFFSET\\s+([0-9]+))?\\s*$";
 
+	/**
+	 * Get Limit And Offset From Stmt.
+	 * 
+	 * @param statement the statement sql
+	 * @return list 
+	 */
 	public static List<Integer> getLimitAndOffsetFromStmt(String statement) {
 		Pattern stmtPattern = Pattern.compile(TQL_FIND_LIMIT_OFFSET_VALUE_REGEX, Pattern.CASE_INSENSITIVE);
 		List<Integer> result = new ArrayList<>();
@@ -430,11 +476,12 @@ public class ConversionUtils {
 
 	/**
 	 * TQL type
-	 * 
-	 *
 	 */
 	public enum TQLStatementType {
-		SELECT_ALL, AGGREGATION, TIME_SERIES_INTERPOLATION, UNKNOW
+		SELECT_ALL,
+		AGGREGATION,
+		TIME_SERIES_INTERPOLATION,
+		UNKNOW
 	}
 
 	private final static String TQL_SELECT_ALL_TYPE_CHECK_REGEX = "^\\s*(select\\s*\\*)";
@@ -499,7 +546,7 @@ public class ConversionUtils {
 
 	private static final String TQL_REMOVE_ORDERBY_AND_LIMIT_EXIST_REGEX = "[\\s*)'](ORDER\\s+BY([^']*))\\s*$";
 	private static final String TQL_REMOVE_LIMIT_REGEX = ".*(LIMIT\\s+[0-9]+\\s*(\\sOFFSET\\s+[0-9]+)?\\s*)$";
-	
+
 	/**
 	 * Convert select * TQL to select count(*)
 	 * 
@@ -512,7 +559,7 @@ public class ConversionUtils {
 		String selectCountStatement = replaceGroup(TQL_SELECT_ALL_TYPE_CHECK_REGEX, trimStatemnt, 1, "select count(*)");
 		String noOrderBySelectCountStatement = replaceGroup(TQL_REMOVE_ORDERBY_AND_LIMIT_EXIST_REGEX, selectCountStatement, 1, "");
 		String noLimitAndOrderSelectCountStatement = replaceGroup(TQL_REMOVE_LIMIT_REGEX, noOrderBySelectCountStatement, 1, "");
-		
+
 		return noLimitAndOrderSelectCountStatement.trim();
 	}
 
@@ -557,4 +604,22 @@ public class ConversionUtils {
 		return new StringBuilder(source).replace(m.start(groupToReplace), m.end(groupToReplace), replacement)
 				.toString();
 	}
+
+	/**
+	 * Format valid IPv4 address.
+	 *
+	 * @param ipAddress the ip address
+	 * @return the string
+	 */
+	public static String formatValidIPAddress(String ipAddress) {
+		String[] parts = ipAddress.split("\\.");
+		String outputIPAddress = "";
+		for (String s : parts) {
+			int i = Integer.parseInt(s);
+			String part = String.valueOf(i) + Constants.DOT_CHARACTER;
+			outputIPAddress += part;
+		}
+		return outputIPAddress.substring(0, outputIPAddress.length() - 1);
+	}
+
 }

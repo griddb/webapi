@@ -38,6 +38,10 @@ public class GWQueryParams {
 	 */
 	private String sort;
 
+
+	/** which column to set file name of blob type when getting rows. */
+	private String fileNameCol;
+
 	/**
 	 * Get the limitation of the number of rows
 	 * 
@@ -111,6 +115,24 @@ public class GWQueryParams {
 	 */
 	public void setSort(String sort) {
 		this.sort = sort;
+	}
+
+	/**
+	 * Get column name for naming BLOB data file.
+	 *
+	 * @return fileNameCol column name
+	 */
+	public String getFileNameCol() {
+	  return fileNameCol;
+	}
+
+	/**
+	 * Set column name for naming BLOB data file.
+	 *
+	 * @param fileNameCol column name
+	 */
+	public void setFileNameCol(String fileNameCol) {
+		this.fileNameCol = fileNameCol;
 	}
 
 }

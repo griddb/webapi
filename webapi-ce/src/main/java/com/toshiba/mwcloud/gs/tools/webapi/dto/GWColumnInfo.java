@@ -16,10 +16,12 @@
 
 package com.toshiba.mwcloud.gs.tools.webapi.dto;
 
-import java.util.Set;
-
 import com.toshiba.mwcloud.gs.GSType;
 import com.toshiba.mwcloud.gs.IndexType;
+import com.toshiba.mwcloud.gs.TimeUnit;
+import java.util.Set;
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonInclude.Include;
 
 public class GWColumnInfo {
 
@@ -27,16 +29,20 @@ public class GWColumnInfo {
 	 * Name of column
 	 */
 	private String name;
-	
+
 	/**
 	 * Type of column
 	 */
 	private GSType type;
-	
+
 	/**
 	 * A {@link Set} of {@link IndexType}
 	 */
 	private Set<IndexType> index;
+
+	/* Precision if column type is TIMESTAMP */
+	@JsonInclude(Include.NON_NULL)
+	private TimeUnit timePrecision;
 
 	/**
 	 * Get name of column
@@ -92,6 +98,22 @@ public class GWColumnInfo {
 		this.index = index;
 	}
 
-	
-	
+	/**
+	* Get precision if column type is TIMESTAMP
+	*
+	* @return the precision of timestamp in TimeUnit
+	*/
+	public TimeUnit getTimePrecision() {
+		return timePrecision;
+	};
+
+	/**
+	* Set precision if column type is TIMESTAMP
+	*
+	* @param precision the precision of timestamp in TimeUnit
+	*/
+	public void setTimePrecision(TimeUnit precision) {
+		this.timePrecision = precision;
+	};
+
 }

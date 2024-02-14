@@ -26,10 +26,11 @@ import com.toshiba.mwcloud.gs.tools.common.repository.RepositoryUtils;
 import com.toshiba.mwcloud.gs.tools.common.repository.ToolProperties;
 import com.toshiba.mwcloud.gs.tools.webapi.exception.GWException;
 
+@PropertySource("application.properties")
 public class GWContextListener implements ServletContextListener {
 
-	@Value("${webapiHome}")
-	private String webapiHome;
+	@Value("${adminHome}")
+	private String adminHome;
 
 	@Value("${propertyFilePath}")
 	private String propertyFilePath;
@@ -44,7 +45,7 @@ public class GWContextListener implements ServletContextListener {
 	@Override
 	public void contextInitialized(ServletContextEvent servletContextEvent) {
 
-		ToolProperties.readInitPropertyFile(webapiHome, propertyFilePath);
+		ToolProperties.readInitPropertyFile(adminHome, propertyFilePath);
 		try {
 			RepositoryUtils.init();
 			RepositoryUtils.readRepository();
@@ -61,17 +62,5 @@ public class GWContextListener implements ServletContextListener {
 			}
 		}
 
-		/**
-		 * Check driver for executing SQL
-		 */
-		int loginTimeout = GWSettingInfo.getLoginTimeout();
-		if (loginTimeout > 0) {
-			try {
-				Class.forName(Constants.DRIVER_NAME);
-			} catch (ClassNotFoundException e) {
-				throw new GWException("Failed to setup jdbc");
-			}
-			java.sql.DriverManager.setLoginTimeout(loginTimeout);
-		}
 	}
 }

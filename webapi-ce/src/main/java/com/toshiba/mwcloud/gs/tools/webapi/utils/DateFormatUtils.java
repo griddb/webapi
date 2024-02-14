@@ -16,8 +16,10 @@
 
 package com.toshiba.mwcloud.gs.tools.webapi.utils;
 
+import com.toshiba.mwcloud.gs.TimeUnit;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.time.format.DateTimeFormatter;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.TimeZone;
@@ -26,9 +28,9 @@ public class DateFormatUtils {
 
 	private static final Calendar cal = Calendar.getInstance(TimeZone.getTimeZone("Z"));
 
-	private static final ThreadLocal<SimpleDateFormat> format = new ThreadLocal<SimpleDateFormat>(){
+	private static final ThreadLocal<SimpleDateFormat> format = new ThreadLocal<SimpleDateFormat>() {
 		@Override
-		protected SimpleDateFormat initialValue(){
+		protected SimpleDateFormat initialValue() {
 				SimpleDateFormat simpleDateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
 				simpleDateFormat.setTimeZone(cal.getTimeZone());
 				return simpleDateFormat;
@@ -43,7 +45,7 @@ public class DateFormatUtils {
 	 * @param date a {@link Date} object
 	 * @return a {@link String} represent a {@link Date}
 	 */
-	public static String format(Date date){
+	public static String format(Date date) {
 		return format.get().format(date);
 	}
 
@@ -57,4 +59,30 @@ public class DateFormatUtils {
 	public static Date parse(String str) throws ParseException {
 		return format.get().parse(str);
 	}
+
+	/**
+	 * Get the DateTimeFormatter base on time precision
+	 *
+	 * @param unit the precision time unit of timestamp
+	 * @return DateTimeFormatter value
+	 */
+	public static DateTimeFormatter getDateTimeFormatter(TimeUnit unit) {
+		String format = "";
+		switch (unit) {
+			case MILLISECOND:
+				format = "yyyy-MM-dd'T'HH:mm:ss.SSSXXX";
+				break;
+			case MICROSECOND:
+				format = "yyyy-MM-dd'T'HH:mm:ss.SSSSSSXXX";
+				break;
+			case NANOSECOND:
+				format = "yyyy-MM-dd'T'HH:mm:ss.SSSSSSSSSXXX";
+				break;
+			default:
+				throw new IllegalArgumentException("Invalid time unit. Valid unit is MILLISECOND, MICROSECOND and NANOSECOND.");
+		}
+		return DateTimeFormatter.ofPattern(format);
+	}
+
+
 }

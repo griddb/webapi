@@ -19,7 +19,7 @@ package com.toshiba.mwcloud.gs.tools.webapi.utils;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
-
+import java.util.Properties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -85,8 +85,16 @@ public class ConnectionUtils {
 		}
 
 		Connection conn = null;
+		Properties props = new Properties();
+		props.setProperty("user", userid);
+		props.setProperty("password", password);
+
+		// updated 4.5.0 version
+		GWSettingInfo.setOptionalProperty(props);
+		DriverManager.setLoginTimeout(GWSettingInfo.getLoginTimeout());
+
 		try {
-			conn = DriverManager.getConnection(url, userid, password);
+			conn = java.sql.DriverManager.getConnection(url, props);
 		} catch (SQLException e) {
 			int errCode = e.getErrorCode();
 

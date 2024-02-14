@@ -16,11 +16,11 @@ apply plugin: 'org.springframework.boot'
 apply plugin: 'io.spring.dependency-management'
 
 group = 'com.toshiba.mwcloud.gs.tools'
-version = '2.2.0'
+version = '5.5.0'
 sourceCompatibility = 1.8
 
-def gridstoreVersion = '4.5.0'
-def gridstoreJdbcVersion = '4.5.0.1'
+def gridstoreVersion = '5.5.0'
+def gridstoreJdbcVersion = '5.5.0'
 
 repositories {
     mavenCentral()
@@ -35,7 +35,7 @@ dependencies {
     compile group: 'com.mashape.unirest', name: 'unirest-java', version: '1.4.9'
     compile group: 'com.github.griddb', name: 'gridstore', version: "${gridstoreVersion}"
     compile group: 'com.github.griddb', name: 'gridstore-jdbc', version: "${gridstoreJdbcVersion}"
-    
+
     compile project(":griddb-tools-common")
 }
 

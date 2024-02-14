@@ -24,6 +24,7 @@ import java.util.Map;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.MultivaluedMap;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -207,6 +208,7 @@ public class GridStoreWebAPI {
 		return getNodeStat(AddressType.CLUSTER);
 	}
 
+	@JsonIgnoreProperties(ignoreUnknown=true)
 	public static class PartitionInfo {
 		public NodeKeyPartition owner;
 		public int pId;
