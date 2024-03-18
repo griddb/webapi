@@ -107,7 +107,6 @@ Even without changing the initial settings, Web API can work while all the param
 
 | Field              | Description                                                                                                       | Default value |
 |--------------------|--------------------------------------------------------------------------------|--------------|
-| port | Web API service port (integer from 1 to 65535) | 8081           |
 | maxResponseSize | The upper limit of the size for row acquisition, SQL execution, and TQL execution (MB) (integer from 1 to 2048) | 20           |
 | maxRequestSize | The upper size limit for row registration (MB) (1-2048) | 20           |
 | loginTimeout | The connection timeout time (in seconds) for SQL execution<br>(Specify an integer value for this field. If the value is less than or equal to zero, an SQL statement cannot be executed.)  | 5            |
@@ -148,6 +147,9 @@ The URI to be accessed when using the Web API.
 [Memo]
 - For "(command path)" above, see the section on each function.
 - Operations on clusters, databases and containers whose name contains any special characters ('-', '.', '/', '=') cannot be performed in the Web API.
+- When you change port (default is 8081) used in URI, please do the following steps.
+    1. Copy webapi-ce/src/main/resource/application.properties to your working directory
+    2. Edit server.port in it
 
 <a id="request_header"></a>
 ### Request header
