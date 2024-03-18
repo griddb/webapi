@@ -34,6 +34,10 @@ Building of the library and execution of the sample programs have been checked i
         - repository.json
         - griddb_webapi.properties (if necessary)
 
+        When you change port (default is 8081) used in URI, please do the following steps.
+        1. Copy webapi-ce/src/main/resource/application.properties to your working directory
+        2. Edit server.port in it
+
 4. Run with Jar
 
         java -jar ./build/libs/griddb-webapi-ce-X.X.X.jar
@@ -49,41 +53,50 @@ GridDB Server need to be started in advance.
         '{"container_name":"test", "container_type":"COLLECTION", "rowkey":true, 
         "columns":[{"name":"col1", "type":"STRING", "index":["TREE"]}, 
           {"name":"col2", "type":"INTEGER"}, {"name":"col3", "type":"BOOL"}]}' 
-        http://127.0.0.1:8010/griddb/v2/mycluster/dbs/public/containers
+        http://127.0.0.1:8081/griddb/v2/mycluster/dbs/public/containers
 
 2. Append a row data
 
         #Request  http://[host]:[port]/griddb/v2/[clusterName]/dbs/public/containers/[containerName]/rows 
         $ curl -X PUT --basic -u admin:admin -H "Content-type:application/json" -d 
         '[["value", 1, true]]' 
-        http://127.0.0.1:8010/griddb/v2/mycluster/dbs/public/containers/test/rows 
+        http://127.0.0.1:8081/griddb/v2/mycluster/dbs/public/containers/test/rows 
 
 3. Get a row data
 
         #Request  http://[host]:[port]/griddb/v2/[clusterName]/dbs/public/containers/[containerName]/rows 
         $ curl -X POST --basic -u admin:admin -H "Content-type:application/json" -d 
         '{"limit":1000}'
-        http://127.0.0.1:8010/griddb/v2/mycluster/dbs/public/containers/test/rows 
+        http://127.0.0.1:8081/griddb/v2/mycluster/dbs/public/containers/test/rows 
         --> {"columns":[{"name":"col1","type":"STRING"},{"name":"col2","type":"INTEGER"}, 
               {"name":"col3","type":"BOOL"}],"rows":[["value",1,true]],"offset":0,"limit":1000,"total":1}
 
 4. Query with TQL
 
         #Request  http://[host]:[port]/griddb/v2/[clusterName]/dbs/public/tql 
-        curl -X POST --basic -u admin:admin -H "Content-type:application/json" -d 
+        $ curl -X POST --basic -u admin:admin -H "Content-type:application/json" -d 
         '[{"name":"test", "stmt":"select *", "columns":[]}]' 
-        http://127.0.0.1:8010/griddb/v2/mycluster/dbs/public/tql 
+        http://127.0.0.1:8081/griddb/v2/mycluster/dbs/public/tql 
         --> [{"columns":[{"name":"col1","type":"STRING"},{"name":"col2","type":"INTEGER"}, 
                {"name":"col3","type":"BOOL"}],"results":[["value",1,true]],"offset":0,"limit":1000000,"total":1}]
 
 5. Query with SQL
 
-        #Request  http://[host]:[port]/griddb/v2/[clusterName]/dbs/public/sql 
-        curl -X POST -u admin:admin -H "Content-type:application/json; charset=UTF-8" 
-        -d '[{"type":"sql-select","stmt":"select * from test"}]' 
-        http://127.0.0.1:8010/griddb/v2/mycluster/dbs/public/sql 
+        #Request  http://[host]:[port]/griddb/v2/[clusterName]/dbs/public/sql/select 
+        $ curl -X POST -u admin:admin -H "Content-type:application/json; charset=UTF-8" 
+        -d '[{"stmt":"select * from test"}]' 
+        http://127.0.0.1:8081/griddb/v2/mycluster/dbs/public/sql/select 
         --> [{"columns":[{"name":"col1","type":"STRING"},{"name":"col2","type":"INTEGER"}, 
                {"name":"col3","type":"BOOL"}],"results":[["value",1,true]]}]
+
+6. Update with SQL
+
+        #Request  http://[host]:[port]/griddb/v2/[clusterName]/dbs/public/sql/update 
+        $ curl -X POST -u admin:admin -H "Content-type:application/json; charset=UTF-8" 
+        -d '[{"stmt":"update test set col3 = false where col2 = 1"}]' 
+        http://127.0.0.1:8081/griddb/v2/mycluster/dbs/public/sql/update 
+        --> [{"status":1, "updatedRows":1,
+               "stmt":"update test set col3 = false where col2 = 1", "message":null}]
 
 Please refer to the file below for more detailed information.  
   - [WebAPI Reference (en)](GridDB_Web_API_Reference.md)
