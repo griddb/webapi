@@ -8,7 +8,7 @@ GridDB WebAPI is developed using GridDB Java Client and [Spring Boot](https://sp
 
 Building of the library and execution of the sample programs have been checked in the following environment.
 - OS: CentOS 7.9(x64)
-- [GridDB Server](https://github.com/griddb/griddb): 5.5
+- [GridDB Server](https://github.com/griddb/griddb): 5.6
 
 ## QuickStart
 
