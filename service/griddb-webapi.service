@@ -1,0 +1,14 @@
+[Unit]
+Description=GridDB Webapi.
+
+[Service]
+WorkingDirectory=/usr/griddb-webapi
+EnvironmentFile=-/etc/environment
+ExecStart=/bin/bash -c '/usr/bin/java -Xmx1024m -jar ${GS_COMMON_JVM_ARGS} /usr/griddb-webapi/griddb-webapi.jar'
+RemainAfterExit=true
+RestartSec=30
+Restart=on-failure
+SuccessExitStatus=143
+
+[Install]
+WantedBy=multi-user.target
