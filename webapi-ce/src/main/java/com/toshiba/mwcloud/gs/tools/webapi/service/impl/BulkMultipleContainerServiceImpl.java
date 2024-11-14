@@ -98,8 +98,9 @@ public class BulkMultipleContainerServiceImpl implements BulkMultipleContainerSe
       throws GSException, SQLException, UnsupportedEncodingException {
 
     long rowMaxSize = GWSettingInfo.getMaxGetRowSize();
-    long rowsize = 0;
+    long totalSize = 0;
     for (Map.Entry<String, List<Row>> entry : outMap.entrySet()) {
+      long rowSize = 0;
       String containerName = entry.getKey();
 
       // Find last element match filter
@@ -152,9 +153,10 @@ public class BulkMultipleContainerServiceImpl implements BulkMultipleContainerSe
                     null,
                     null);
             }
-            rowsize += size;
+            rowSize += size;
+            totalSize += size;
           }
-          if (rowsize > rowMaxSize) {
+          if (rowSize > rowMaxSize || totalSize > GWSettingInfo.getMaxTotalResponseSize()) {
             throw new GWBadRequestException(Messages.GET_BULK_ROWS_CONTAINER_TOO_MANY);
           }
           rowsResult.add(list);

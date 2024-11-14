@@ -16,11 +16,11 @@
 
 package com.toshiba.mwcloud.gs.tools.webapi.utils;
 
-import com.toshiba.mwcloud.gs.GSException;
 import com.toshiba.mwcloud.gs.tools.webapi.utils.Constants.SslMode;
 import java.util.Properties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.util.StringUtils;
 
 import com.toshiba.mwcloud.gs.tools.common.repository.ToolProperties;
 import com.toshiba.mwcloud.gs.tools.webapi.exception.GWException;
@@ -41,6 +41,9 @@ public class GWSettingInfo {
 
 	// Upper limitation of row registration size (Byte)
 	private static long maxPutRowSize;
+
+	// Upper limitation of total response from request that has multiple statements (Byte)
+	private static long maxTotalResponseSize;
 
 	private static int loginTimeout;
 
@@ -75,6 +78,9 @@ public class GWSettingInfo {
 				ToolProperties.getMessage(Constants.PROP_MAX_SYSTEM_GETROW_SIZE));
 		setMaxPutRowSize(ToolProperties.getMessage(Constants.PROP_MAX_PUTROW_SIZE),
 				ToolProperties.getMessage(Constants.PROP_MAX_SYSTEM_PUTROW_SIZE));
+		setMaxTotalResponseSize(
+				ToolProperties.getMessage(Constants.PROP_MAX_TOTAL_RESPONSE_SIZE),
+				ToolProperties.getMessage(Constants.PROP_MAX_SYSTEM_TOTAL_RESPONSE_SIZE));
 
 		setLoginTimeout(ToolProperties.getMessage(Constants.PROP_LOGIN_TIMEOUT));
 
@@ -200,7 +206,7 @@ public class GWSettingInfo {
 					+ Constants.PROP_MIN_SYSTEM_GETROW_SIZE + "' " + minSystemGetRowSize + ".");
 		}
 
-		maxGetRowSize = maxGetRowSize * 1024 * 1024;
+		maxGetRowSize = maxGetRowSize * Constants.MB_TO_BYTE;
 	}
 
 	public static long getMaxGetRowSize() {
@@ -237,7 +243,7 @@ public class GWSettingInfo {
 					+ Constants.PROP_MIN_SYSTEM_PUTROW_SIZE + "' " + minSystemPutRowSize + ".");
 		}
 
-		maxPutRowSize = maxPutRowSize * 1024 * 1024;
+		maxPutRowSize = maxPutRowSize * Constants.MB_TO_BYTE;
 	}
 
 	public static long getMaxPutRowSize() {
@@ -464,6 +470,13 @@ public class GWSettingInfo {
 		if (! SslMode.DISABLED.toString().equals(sslMode)) {
 			props.setProperty(Constants.PROPERTY_SSL_MODE, sslMode);
 		}
+
+		// set application name
+		String applicationName = ToolProperties.getMessage(Constants.PROPERTY_APPLICATION_NAME);
+		applicationName =
+				!StringUtils.hasLength(applicationName) ? Constants.WEBAPI_DEFAULT_NAME : applicationName;
+		props.setProperty(Constants.PROPERTY_APPLICATION_NAME, applicationName);
+
 	}
 
 	/**
@@ -481,5 +494,63 @@ public class GWSettingInfo {
 	public static String getBlobPath() {
 		return blobPath;
 	}
-	
+
+	/**
+	 * get maximum limit of total response size.
+	 * @return maximum limit of total response size
+	 */
+	public static long getMaxTotalResponseSize() {
+		return maxTotalResponseSize;
+	}
+
+	/**
+	 * Set max total response size.
+	 *
+	 * @param value size of total response
+	 * @param systemSettingValue system's setting value
+	 */
+	public static void setMaxTotalResponseSize(String value, String systemSettingValue) throws GWException {
+		maxTotalResponseSize = Constants.MAX_TOTAL_RESPONSE_SIZE_DEFAULT;
+		if (value != null) {
+			try {
+				maxTotalResponseSize = Integer.parseInt(value);
+			} catch (NumberFormatException e) {
+				throw new GWException("property '" + Constants.PROP_MAX_TOTAL_RESPONSE_SIZE + "' is invalid.");
+			}
+		}
+
+		int maxSystemTotalResSize = Constants.MAX_SYSTEM_TOTAL_RESPONSE_SIZE_DEFAULT;
+		if (systemSettingValue != null) {
+			try {
+				maxSystemTotalResSize = Integer.parseInt(systemSettingValue);
+			} catch (NumberFormatException e) {
+				throw new GWException(
+						"property '" + Constants.PROP_MAX_SYSTEM_TOTAL_RESPONSE_SIZE + "' is invalid.");
+			}
+		}
+
+		if (maxTotalResponseSize > maxSystemTotalResSize) {
+			throw new GWException(
+					"property '"
+							+ Constants.PROP_MAX_TOTAL_RESPONSE_SIZE
+							+ "' can not larger than '"
+							+ Constants.PROP_MAX_SYSTEM_TOTAL_RESPONSE_SIZE
+							+ "' "
+							+ maxSystemTotalResSize
+							+ ".");
+		}
+		int minSystemTotalResSize = Constants.MIN_SYSTEM_TOTAL_RESPONSE_SIZE_DEFAULT;
+		if (maxTotalResponseSize < minSystemTotalResSize) {
+			throw new GWException(
+					"property '"
+							+ Constants.PROP_MAX_TOTAL_RESPONSE_SIZE
+							+ "' can not smaller than '"
+							+ Constants.PROP_MIN_SYSTEM_TOTAL_RESPONSE_SIZE
+							+ "' "
+							+ minSystemTotalResSize
+							+ ".");
+		}
+		maxTotalResponseSize = maxTotalResponseSize * Constants.MB_TO_BYTE;
+	}
+
 }

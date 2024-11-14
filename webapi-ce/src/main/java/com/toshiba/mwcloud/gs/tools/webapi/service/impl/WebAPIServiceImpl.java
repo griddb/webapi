@@ -37,7 +37,9 @@ import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 
+
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import com.toshiba.mwcloud.gs.AggregationResult;
@@ -45,6 +47,7 @@ import com.toshiba.mwcloud.gs.ColumnInfo;
 import com.toshiba.mwcloud.gs.Container;
 import com.toshiba.mwcloud.gs.ContainerInfo;
 import com.toshiba.mwcloud.gs.ContainerType;
+import com.toshiba.mwcloud.gs.FetchOption;
 import com.toshiba.mwcloud.gs.GSException;
 import com.toshiba.mwcloud.gs.GSType;
 import com.toshiba.mwcloud.gs.Geometry;
@@ -95,6 +98,8 @@ import ch.qos.logback.classic.Logger;
 public class WebAPIServiceImpl implements WebAPIService {
 
 	private static final Logger logger = (Logger) LoggerFactory.getLogger(WebAPIServiceImpl.class);
+	@Value("${sql.jdbc.statement.timeout:0}")
+	private int sqlTimeOut;
 
 	@Override
 	public void testConnection(String authorization, String cluster, String database, Long timeout) throws GSException {
@@ -324,12 +329,23 @@ public class WebAPIServiceImpl implements WebAPIService {
 			gridStore = GridStoreUtils.getGridStore(cluster, database, user.getUsername(), user.getPassword());
 			// Execute TQL
 			List<Object> result = new ArrayList<>();
+			long totalSize = 0;
 			for (int i = 0; i < listTQLs.size(); i++) {
 				String container = listTQLs.get(i).getName();
 				String statement = listTQLs.get(i).getStmt();
+				Boolean hasPartialExecution = listTQLs.get(i).getHasPartialExecution();
 				ArrayList<String> selectedFields = listTQLs.get(i).getColumns();
-				Object gwTQLOutput = executeTQL(gridStore, container, statement, selectedFields);
+				Object gwTQLOutput = executeTQL(gridStore, container, statement, selectedFields, hasPartialExecution);
 				result.add(gwTQLOutput);
+				// Add size of each result that is not Aggregation to totalSize
+				if (!(gwTQLOutput instanceof GWTQLOutputAggregation)) {
+					GWTQLOutput output = (GWTQLOutput) gwTQLOutput;
+					totalSize += output.getResponseSizeByte();
+				}
+			}
+			// Throw exception if size of all the result is over limit
+			if (totalSize > GWSettingInfo.getMaxTotalResponseSize()) {
+				throw new GWBadRequestException("Too many result");
 			}
 			return result;
 		} catch (GSException gsException) {
@@ -350,7 +366,8 @@ public class WebAPIServiceImpl implements WebAPIService {
 		}
 	}
 
-	private Object executeTQL(GridStore gridStore, String container, String statement, ArrayList<String> selectedFields)
+	private Object executeTQL(GridStore gridStore, String container, String statement, ArrayList<String> selectedFields,
+			Boolean hasPartialExecution)
 			throws GSException, GWException, UnsupportedEncodingException, SQLException {
 		GWTQLOutput result = new GWTQLOutput();
 		ExtendedContainerInfo extendedContainerInfo = ExperimentalTool.getExtendedContainerInfo(gridStore, container);
@@ -430,6 +447,12 @@ public class WebAPIServiceImpl implements WebAPIService {
 
 		// Execute query
 		Query<?> query = cont.query(newStatement, null);
+
+		// turn on PARTIAL_EXECUTION option
+		if(hasPartialExecution != null && hasPartialExecution) {
+			query.setFetchOption(FetchOption.PARTIAL_EXECUTION, true);
+		}
+
 		RowSet<?> rowSet = query.fetch();
 		List<Object> fetchResult = new ArrayList<>();
 		while (rowSet.hasNext()) {
@@ -485,9 +508,9 @@ public class WebAPIServiceImpl implements WebAPIService {
 		if (selectedFields != null && selectedFields.size() > 0 && selectedColumns.size() == 0) {
 			result.setColumns(null);
 		} else if (selectedFields != null && selectedFields.size() > 0 && selectedColumns.size() != 0) {
-			result.setResults(getSelectedColumnsByTQL(fetchResult, selectedColumns, containerInfo));
+			result.setResults(getSelectedColumnsByTQL(fetchResult, selectedColumns, containerInfo, result));
 		} else {
-			result.setResults(rowSetToTqlResult(fetchResult, containerInfo));
+			result.setResults(rowSetToTqlResult(fetchResult, containerInfo, result));
 		}
 		return result;
 	}
@@ -521,7 +544,8 @@ public class WebAPIServiceImpl implements WebAPIService {
 	}
 
 	private List<List<Object>> getSelectedColumnsByTQL(List<Object> fetchResult, ArrayList<Integer> selectedColumns,
-			ContainerInfo containerInfo) throws GSException, GWException, UnsupportedEncodingException, SQLException {
+			ContainerInfo containerInfo, GWTQLOutput result)
+					throws GSException, GWException, UnsupportedEncodingException, SQLException {
 		if (null == fetchResult) {
 			return null;
 		}
@@ -554,6 +578,7 @@ public class WebAPIServiceImpl implements WebAPIService {
 			}
 			rows.add(listObject);
 		}
+		result.setResponseSizeByte(rowsize);
 		return rows;
 	}
 
@@ -632,7 +657,7 @@ public class WebAPIServiceImpl implements WebAPIService {
 		}
 	}
 
-	private List<List<Object>> rowSetToTqlResult(List<Object> fetchResult, ContainerInfo containerInfo)
+	private List<List<Object>> rowSetToTqlResult(List<Object> fetchResult, ContainerInfo containerInfo, GWTQLOutput result)
 			throws GSException, GWException, UnsupportedEncodingException, SQLException {
 		if (fetchResult == null) {
 			return null;
@@ -667,6 +692,7 @@ public class WebAPIServiceImpl implements WebAPIService {
 			}
 			rows.add(list);
 		}
+		result.setResponseSizeByte(rowsize);
 		return rows;
 	}
 
@@ -1528,8 +1554,15 @@ public class WebAPIServiceImpl implements WebAPIService {
 		}
 
 		List<GWSQLOutput> result = new ArrayList<>();
+		long totalSize = 0;
 		for (GWSQLInput sqlInput : listSQLInput) {
-			result.add(executeSQL(user.getUsername(), user.getPassword(), cluster, database, sqlInput));
+			GWSQLOutput output = executeSQL(user.getUsername(), user.getPassword(), cluster, database, sqlInput);
+			result.add(output);
+			totalSize += output.getResponseSizeByte();
+		}
+		// Check if total size of all the results is over limit or not
+		if (totalSize > GWSettingInfo.getMaxTotalResponseSize()) {
+			throw new GWBadRequestException("Too many result");
 		}
 
 		long end = System.nanoTime();
@@ -1560,6 +1593,9 @@ public class WebAPIServiceImpl implements WebAPIService {
 		Statement statement = null;
 		try {
 			statement = connection.createStatement();
+			if (sqlTimeOut != 0) {
+				statement.setQueryTimeout(sqlTimeOut);
+			}
 		} catch (SQLException e) {
 			try {
 				connection.close();
@@ -1600,6 +1636,7 @@ public class WebAPIServiceImpl implements WebAPIService {
 			GWSQLOutput temp = resultSetToSqlResult(resultSet, resultSetMetadata);
 			sqlResult.setColumns(temp.getColumns());
 			sqlResult.setResults(temp.getResults());
+			sqlResult.setResponseSizeByte(temp.getResponseSizeByte());
 		} catch (SQLException e) {
 			throw e;
 		} catch (UnsupportedEncodingException e) {
@@ -1663,6 +1700,7 @@ public class WebAPIServiceImpl implements WebAPIService {
 			}
 			rows.add(list);
 		}
+		result.setResponseSizeByte(rowsize);
 		result.setColumns(columns);
 		result.setResults(rows);
 		return result;

@@ -30,6 +30,9 @@ public class GWSQLOutput {
 	 */
 	private List<List<Object>> results;
 
+	/** Size of the result (byte). */
+	private long responseSizeByte;
+
 	/**
 	 * Get list of column information
 	 * 
@@ -65,6 +68,24 @@ public class GWSQLOutput {
 	 */
 	public void setResults(List<List<Object>> results) {
 		this.results = results;
+	}
+
+	/**
+	 * Get size of the output.
+	 *
+	 * @return size of the output
+	 */
+	public long getResponseSizeByte() {
+		return responseSizeByte;
+	}
+
+	/**
+	 * Set size for the output.
+	 *
+	 * @param size of the output
+	 */
+	public void setResponseSizeByte(long size) {
+		this.responseSizeByte = size;
 	}
 
 }

@@ -45,6 +45,9 @@ public class GWTQLOutput {
 	 */
 	private long total;
 	
+	/** Size of the result (byte). */
+	private long responseSizeByte;
+
 	/**
 	 * Get list of column information
 	 * 
@@ -133,6 +136,24 @@ public class GWTQLOutput {
 	 */
 	public void setTotal(long total) {
 		this.total = total;
+	}
+
+	/**
+	 * Get size of the result.
+	 *
+	 * @return size of the result
+	 */
+	public long getResponseSizeByte() {
+		return responseSizeByte;
+	}
+
+	/**
+	 * Set size of the result.
+	 *
+	 * @param size of the result
+	 */
+	public void setResponseSizeByte(long size) {
+		this.responseSizeByte = size;
 	}
 	
 	

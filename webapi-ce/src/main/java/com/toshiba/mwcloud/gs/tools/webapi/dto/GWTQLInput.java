@@ -36,6 +36,10 @@ public class GWTQLInput {
 	 */
 	private ArrayList<String> columns;
 
+	/** Partial execution option. */
+	private Boolean hasPartialExecution;
+
+
 	/**
 	 * Get name of container
 	 * 
@@ -88,6 +92,24 @@ public class GWTQLInput {
 	 */
 	public void setColumns(ArrayList<String> columns) {
 		this.columns = columns;
+	}
+
+	/**
+	 * Get hasPartialExecution of query condition.
+	 *
+	 * @return a {@link Boolean} of query condition
+	 */
+	public Boolean getHasPartialExecution() {
+		return hasPartialExecution;
+	}
+
+	/**
+	 * Set hasPartialExecution of query condition.
+	 *
+	 * @param hasPartialExecution {@link Boolean} of query condition
+	 */
+	public void setHasPartialExecution(Boolean hasPartialExecution) {
+		this.hasPartialExecution = hasPartialExecution;
 	}
 
 }
