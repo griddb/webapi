@@ -7,8 +7,8 @@ GridDB WebAPI is developed using GridDB Java Client and [Spring Boot](https://sp
 ## Operating environment
 
 Building of the library and execution of the sample programs have been checked in the following environment.
-- OS: CentOS 7.9(x64)
-- [GridDB Server](https://github.com/griddb/griddb): 5.6
+- OS: Ubuntu 22.04(x64)
+- [GridDB Server](https://github.com/griddb/griddb): 5.7
 
 ## QuickStart
 
@@ -85,18 +85,22 @@ GridDB Server need to be started in advance.
         #Request  http://[host]:[port]/griddb/v2/[clusterName]/dbs/public/sql/select 
         $ curl -X POST -u admin:admin -H "Content-type:application/json; charset=UTF-8" 
         -d '[{"stmt":"select * from test"}]' 
-        http://127.0.0.1:8081/griddb/v2/mycluster/dbs/public/sql/select 
+        http://127.0.0.1:8081/griddb/v2/mycluster/dbs/public/sql/dml/query 
         --> [{"columns":[{"name":"col1","type":"STRING"},{"name":"col2","type":"INTEGER"}, 
                {"name":"col3","type":"BOOL"}],"results":[["value",1,true]]}]
+
+        Note: "/:cluster/dbs/:database/sql/select" style is not recommended.
 
 6. Update with SQL
 
         #Request  http://[host]:[port]/griddb/v2/[clusterName]/dbs/public/sql/update 
         $ curl -X POST -u admin:admin -H "Content-type:application/json; charset=UTF-8" 
         -d '[{"stmt":"update test set col3 = false where col2 = 1"}]' 
-        http://127.0.0.1:8081/griddb/v2/mycluster/dbs/public/sql/update 
+        http://127.0.0.1:8081/griddb/v2/mycluster/dbs/public/sql/dml/update 
         --> [{"status":1, "updatedRows":1,
                "stmt":"update test set col3 = false where col2 = 1", "message":null}]
+
+        Note: "/:cluster/dbs/:database/sql/update" style is not recommended.
 
 Please refer to the file below for more detailed information.  
   - [WebAPI Reference (en)](GridDB_Web_API_Reference.md)

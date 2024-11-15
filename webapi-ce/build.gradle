@@ -16,7 +16,7 @@ apply plugin: 'org.springframework.boot'
 apply plugin: 'io.spring.dependency-management'
 
 group = 'com.toshiba.mwcloud.gs.tools'
-version = '5.6.0'
+version = '5.7.0'
 sourceCompatibility = 1.8
 
 def gridstoreVersion = '5.6.0'
@@ -32,11 +32,12 @@ dependencies {
     runtimeOnly('org.springframework.boot:spring-boot-devtools')
     testImplementation('org.springframework.boot:spring-boot-starter-test')
 
-    compile group: 'com.mashape.unirest', name: 'unirest-java', version: '1.4.9'
-    compile group: 'com.github.griddb', name: 'gridstore', version: "${gridstoreVersion}"
-    compile group: 'com.github.griddb', name: 'gridstore-jdbc', version: "${gridstoreJdbcVersion}"
+    implementation group: 'com.mashape.unirest', name: 'unirest-java',   version: '1.4.9'
+    implementation group: 'com.github.griddb',   name: 'gridstore',      version: "${gridstoreVersion}"
+    implementation group: 'com.github.griddb',   name: 'gridstore-jdbc', version: "${gridstoreJdbcVersion}"
+    implementation group: 'commons-io',          name: 'commons-io',     version: '2.15.1'
 
-    compile project(":griddb-tools-common")
+    implementation project(":griddb-tools-common")
 }
 
 bootJar {
@@ -47,3 +48,4 @@ bootJar {
     
     exclude("slf4j-jdk14-1.7.36.jar", "jackson-core-2.16.1.jar", "jackson-databind-2.16.1.jar", "jackson-annotations-2.16.1.jar")
 }
+

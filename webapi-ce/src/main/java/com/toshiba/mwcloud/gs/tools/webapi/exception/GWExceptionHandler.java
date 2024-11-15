@@ -273,6 +273,12 @@ public class GWExceptionHandler {
 		}
 	}
 
+	/**
+	 * handle GSStatement Exception.
+	 *
+	 * @param e GSStatementException
+	 * @return HttpStatus
+	*/
 	@ExceptionHandler({ GSStatementException.class })
 	@ResponseBody
 	public ResponseEntity<?> handleGSStatementException(GSStatementException e) {

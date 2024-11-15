@@ -38,16 +38,22 @@ public class Constants {
 	public static final String PROP_MAX_GETROW_SIZE = "maxResponseSize";
 	// Upper limitation of row registration
 	public static final String PROP_MAX_PUTROW_SIZE = "maxRequestSize";
+	// Upper limitation of total response from request that has multiple statements
+	public static final String PROP_MAX_TOTAL_RESPONSE_SIZE = "maxTotalResponseSize";
 
 	// System limitation of row acquisition
 	public static final String PROP_MAX_SYSTEM_GETROW_SIZE = "maxSystemGetRowSize";
 	// System limitation of row registration
 	public static final String PROP_MAX_SYSTEM_PUTROW_SIZE = "maxSystemPutRowSize";
+	// System limitation of total response from request that has multiple statements
+	public static final String PROP_MAX_SYSTEM_TOTAL_RESPONSE_SIZE = "maxSystemTotalResponseSize";
 
 	// System limitation of row acquisition
 	public static final String PROP_MIN_SYSTEM_GETROW_SIZE = "minSystemGetRowSize";
 	// System limitation of row registration
 	public static final String PROP_MIN_SYSTEM_PUTROW_SIZE = "minSystemPutRowSize";
+	//System limitation of total response from request that has multiple statements
+	public static final String PROP_MIN_SYSTEM_TOTAL_RESPONSE_SIZE = "minSystemTotalResponseSize";
 
 	public static final String PROP_FAILOVER_TIMEOUT = "failoverTimeout";
 	public static final String PROP_TRANSACTION_TIMEOUT = "transactionTimeout";
@@ -71,16 +77,22 @@ public class Constants {
 	public static final int MAX_GETROW_SIZE_DEFAULT = 20;
 	// Upper limitation of row registration (MB)
 	public static final int MAX_PUTROW_SIZE_DEFAULT = 20;
+	// Upper limitation of total response from request that has multiple statements (MB)
+	public static final int MAX_TOTAL_RESPONSE_SIZE_DEFAULT = 2048;
 
 	// Upper limitation of row acquisition (MB)
 	public static final int MAX_SYSTEM_GETROW_SIZE_DEFAULT = 2048;
 	// Upper limitation of row registration (MB)
 	public static final int MAX_SYSTEM_PUTROW_SIZE_DEFAULT = 2048;
+	// Upper limitation of total response from request that has multiple statements (MB)
+	public static final int MAX_SYSTEM_TOTAL_RESPONSE_SIZE_DEFAULT = 4000;
 
 	// Lower limitation of row acquisition (MB)
 	public static final int MIN_SYSTEM_GETROW_SIZE_DEFAULT = 1;
 	// Lower limitation of row registration (MB)
 	public static final int MIN_SYSTEM_PUTROW_SIZE_DEFAULT = 1;
+	// Lower limitation of total response from request that has multiple statements (MB)
+	public static final int MIN_SYSTEM_TOTAL_RESPONSE_SIZE_DEFAULT = 2;
 
 	public static final String FAILOVER_TIMEOUT_DEFAULT = "5";
 
@@ -128,6 +140,8 @@ public class Constants {
 
 	public static final String DOT_CHARACTER = ".";
 
+	/** Relative path of file griddb_webapiPath.properties */
+	public static final String GIRDDB_WEBAPI_PATH = "/conf/griddb_webapiPath.properties";
 
 	/** Time Zone property in file griddb_webapi.properties */
 	public static final String PROPERTY_TIME_ZONE = "timeZone";
@@ -150,6 +164,9 @@ public class Constants {
 	 */
 	public static final int MAX_TIME_OUT = 10000;
 	
+	/** Convert from MB to byte */
+	public static final long MB_TO_BYTE = 1024 * 1024;
+
 	/**
 	 * Zip file extension.
 	 */
@@ -159,6 +176,14 @@ public class Constants {
 	 * directory path of blob data.
 	 */
 	public static final String PROPERTY_BLOB_PATH = "blobPath";
+
+	/**
+	 * Application name when connecting to GridDB.
+	*/
+	public static final String PROPERTY_APPLICATION_NAME = "applicationName";
+  
+	/** application name value in grid store */
+	public static final String WEBAPI_DEFAULT_NAME= "webapi";
 
 	/** The Enum AuthenticationMethod. */
 	public enum AuthenticationMethod {

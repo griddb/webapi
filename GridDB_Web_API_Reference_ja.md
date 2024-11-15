@@ -28,6 +28,14 @@ Web APIを用いて次のことができます。
   - データベースに対して新規コンテナを作成
 - コンテナ削除
   - データベースに対してコンテナを削除
+- SQL DDL文実行
+  - 指定したデータベースでSQL DDL文を実行
+- SQL DML SELECT文実行
+  - 指定したデータベースでSQL SELECT文を実行
+- SQL DML UPDATE文実行
+  - 指定したデータベースでSQL UPDATE文を実行
+- SQL DCL文実行
+  - 指定したデータベースでSQL DCL文を実行
 - SQL SELECT文実行
   - 指定したデータベースでSQL SELECT文を実行
 - SQL UPDATE文実行
@@ -45,13 +53,41 @@ Web APIを利用するには、事前にJavaをインストールする必要が
 
 Web APIのインストールと設定の手順は、以下のとおりです。
 
-1.  接続先のクラスタを設定する
-2.  Web APIの動作を設定する（任意）
-3.  ログ出力先を設定する（任意）
+1.  Web APIパッケージをインストールする
+2.  接続先のクラスタを設定する
+3.  Web APIの動作を設定する（任意）
+4.  ログ出力先を設定する（任意）
+
+### Web APIパッケージをインストールする
+
+Web APIのパッケージ(griddb-ce-webapi-X.X.X-linux.x86_64.rpm)をインストールします。
+
+Web APIアプリケーションを配置するマシンにrootユーザでログインし、以下のコマンドでパッケージをインストールします。
+
+``` example
+# rpm -Uvh griddb-ce-webapi-X.X.X-linux.x86_64.rpm
+```
+
+※X.X.XはGridDBのバージョン
+
+インストール後、Web APIのjarファイルや設定ファイルは下記のように配置されます。
+
+``` example
+/usr/griddb-ce-webapi-X.X.X/                             ： Web APIインストールディレクトリ
+                     conf/
+                     etc/
+                     griddb-webapi-ce-X.X.X.jar          ： Web API jarファイル
+
+/usr/girddb-webapi/griddb-webapi.jar -> /usr/griddb-ce-webapi-X.X.X/griddb-webapi-ce-X.X.X.jar
+
+/var/lib/gridstore/webapi/conf/griddb_webapi.properties  : 設定ファイル
+                              /repository.json           : クラスタ情報定義ファイル
+                         /log                            : ログ出力ディレクトリ
+```
 
 ### 接続先のクラスタを設定する
 
-Web APIから接続するクラスタの情報を、クラスタ情報定義ファイル( `${GS_WEBAPI_HOME}/conf/repository.json` )に設定します。
+Web APIから接続するクラスタの情報を、クラスタ情報定義ファイル( `/var/lib/gridstore/webapi/conf/repository.json` )に設定します。
 
 接続するクラスタのクラスタ定義ファイル(gs_cluster.json)の値を基に、modeにクラスタ構成の接続方式を指定し、方式に対応するアドレス情報の項目を記載してください。
 
@@ -91,7 +127,7 @@ Web APIから接続するクラスタの情報を、クラスタ情報定義フ�
 
 ### Web APIの動作を設定する（任意）
 
-Web APIの動作を設定ファイル(`${GS_WEBAPI_HOME}/conf/griddb_webapi.properties`)に設定します。
+Web APIの動作を設定ファイル(`/var/lib/gridstore/webapi/conf/griddb_webapi.properties`)に設定します。
 
 この設定の変更を行わずに、すべてデフォルト値のままでもWeb APIは動作します。システムの必要に応じて、値の変更を行ってください。
 
@@ -110,7 +146,7 @@ Web APIの動作を設定ファイル(`${GS_WEBAPI_HOME}/conf/griddb_webapi.prop
 | maxResponseSize      | ロウ取得、SQL実行結果、TQL実行結果の上限のサイズ(MB) (1～2048までの整数) | 20           |
 | maxRequestSize      | ロウ登録の上限のサイズ(MB) (1～2048までの整数)                                 | 20           |
 | loginTimeout       | SQL実行時の接続タイムアウト(秒)  <br>(値は整数を指定します。0以下のときはSQL実行はできません。) | 5            |
-| maxQueryNum      | 一回のリクエストに含められる最大のクエリ数（0～100までの整数） | 10           |
+| maxQueryNum      | 一回のリクエストに含められる最大のSELECT文のクエリ数（0～100までの整数） | 10           |
 | maxLimit      | SQL, TQL実行時に一度に取得する上限のロウ数（1以上の整数）                  | 10000           |
 | timeZone      | SQL、TQLで時刻情報を取得する際のオフセット計算に利用するタイムゾーンとして、時刻(±hh:mm または ±hhmm), タイムゾーンID(「Z」のみサポート), AUTO(JavaVMの環境引継ぎ)のいずれかを指定                 | Z           |
 | notificationInterfaceAddress      | 複数のネットワークインターフェースがあるときにクラスタのネットワーク構成をマルチキャスト方式にする場合、マルチキャストパケットを受信するインターフェースのIPアドレスを指定                  | OSに依存           |
@@ -119,20 +155,36 @@ Web APIの動作を設定ファイル(`${GS_WEBAPI_HOME}/conf/griddb_webapi.prop
 【メモ】
 - 環境設定を反映させるにはWeb APIを再起動する必要があります。
 
+
+- Web APIの使用するポート番号を変更する場合は、以下の/usr/griddb-webapi/application.propertiesの設定を変更してください。
+設定可能な値は1～65535までの整数です。
+
+``` example
+#HTTP/HTTPS port
+server.port=8081
+```
+
 ### ログ出力先を設定する（任意）
 
 Web APIのログは、デフォルトでは下記のディレクトリに出力されます。
 
 ``` example
-${GS_WEBAPI_HOME}/log
+/var/lib/gridstore/webapi/log
 ```
 
 出力先を変更する場合は、下記のファイルを変更してください。
 
 ``` example
-${GS_WEBAPI_HOME}/conf/logback.xml
+/var/lib/gridstore/webapi/conf/logback.xml
 ```
 
+### 起動と停止
+
+Web APIアプリケーションはserviceコマンドで起動、停止を行うことができます。
+
+``` example
+# service griddb-webapi [start|stop|status|restart]
+```
 
 共通機能(HTTPリクエスト/レスポンス)
 -----------------------------------
@@ -148,9 +200,6 @@ Web APIを利用する場合にアクセスするURIです。
 【メモ】
 - (コマンドパス)は、各機能の節をご参照ください。
 - 名前に記号('-' '.' '/' '=')を含むクラスタ、データベース、コンテナに対して、Web APIで操作を行うことはできません。
-- portのデフォルト値は8081です。変更したい場合は以下の操作を実施してください。
-    1.webapi-ce/src/main/resource/application.propertiesファイルをワーキングディレクトリにコピー
-    2.コピーしたapplication.propertiesファイル内のserver.portを編集
 
 <a id="request_header"></a>
 ### リクエストヘッダ
@@ -1125,6 +1174,7 @@ POST
 | /name      | 対象コンテナ名    | 文字列      | ○    |
 | /stmt      | TQL文            | 文字列      | ○    |
 | /columns   | 取得カラム名の配列 | 配列       | -    |
+| /hasPartialExecution   | 部分実行モードの設定有無。デフォルト値は設定無し | 真偽値(true または false)       | -    |
 
 【メモ】
 - TQL文中のlimitで指定した値が設定ファイルのmaxLimitの値よりも大きい場合、maxLimitの値をlimit句に使用します。
@@ -1133,9 +1183,8 @@ POST
 
 ```
 [
-  {"name" : "container1", "stmt" : "select * limit 100", "columns" : null},
-  {"name" : "container2", "stmt" : "select * where column1>=0", "columns" : ["column1"]},
-  {"name" : "container3", "stmt" : "select SUM(*) order by column1 desc", "columns" : null}
+  {"name" : "container1", "stmt" : "select * limit 100", "columns" : null, "hasPartialExecution" : true},
+  {"name" : "myTable", "stmt" : "select * limit 100", "columns" : ["value1"]} 
 ]
 ```
 
@@ -1161,6 +1210,7 @@ POST
 | /total        | offset, limitを無視した場合の取得数| 数値         |
 | /offset       | 取得開始位置       | 数値         |
 | /limit        | 適用された取得数   | 数値         |
+| /responseSizeByte        | レスポンスサイズ   | 数値         |
 
 【メモ】
 - TQL文が集約演算の場合、total, offset, limitは含まれません。
@@ -1170,27 +1220,32 @@ POST
 ```
 [
   {
-    "columns" : [
-      {"name": "date", "type": "TIMESTAMP"},
-      {"name": "value", "type": "DOUBLE"},
-      {"name": "str", "type": "STRING"}
+    "columns":[
+      {"name":"date","type":"TIMESTAMP","timePrecision":"MILLISECOND"},
+      {"name":"value","type":"DOUBLE"},{"name":"str","type":"STRING"}
     ],
-    "results" : [
-      ["2016-01-16T10:25:00.253Z", 100.5, "normal" ],
-      ["2016-01-16T10:35:00.691Z", 173.9, "normal" ],
-      ["2016-01-16T10:45:00.032Z", 173.9, null]
+    "results":[
+      ["2016-01-16T10:25:00.253Z",20.02,"row_example_1"],
+      ["2016-01-16T10:25:00.254Z",20.03,"row_example_2"],
+      ["2016-01-16T10:25:00.255Z",20.04,"row_example_3"],
+      ["2016-01-16T10:25:00.256Z",20.05,"row_example_4"]
     ],
-    "total" : 1000125,
-    "offset" : 0,
-    "limit" : 3
+    "offset":0,
+    "limit":100,
+    "total":4,
+    "responseSizeByte":116
   },
   {
-    "columns" : [
-      {"name": "aggregationResult", "type": "LONG"}
+    "columns":[
+      {"name":"value1","type":"DOUBLE"}
+  ],
+    "results":[
+      [1.0]
     ],
-    "results" : [
-      [55]
-    ]
+    "offset":0,
+    "limit":100,
+    "total":1,
+    "responseSizeByte":8
   }
 ]
 ```
@@ -1374,7 +1429,320 @@ DELETE
 
 失敗した場合のレスポンスボディは、[レスポンスボディ](#response_body)を参照してください。
 
-SQL SELECT文実行
+<a id="ddl"></a>
+## SQL DDL文実行
+
+本機能はGridDBのデータベースでひとつまたは複数のSQL DDL文(CREATE TABLE, DROP TABLE, ALTER TABLE)を実行します。
+
+**コマンドパス**
+
+`/:cluster/dbs/:database/sql/ddl`
+
+| 項目      | 説明                                            |
+| --------- | ------------------------------------------------------ |
+| :cluster  | クラスタ名                                           |
+| :database | データベース名 (publicデータベースの場合は "public"を指定してください) |
+
+**HTTPメソッド**
+
+POST
+
+**リクエストヘッダ**
+
+ [リクエストヘッダ](#request_header)参照してください。
+ 
+**リクエストボディ**
+
+ひとつまたは複数のSQL DDL文を下記のJSON形式で指定してください。
+
+| 項目  | 説明            | JSONデータ型 | 必須 |
+| ----- | ---------------------- | -------------- | -------- |
+| /stmt | SQL DDL文 | string         | ○        |
+
+
+例）
+
+```
+[ 
+ {"stmt" : "CREATE TABLE myTable (key INTEGER PRIMARY KEY, value1 DOUBLE NOT NULL, value2 DOUBLE NOT NULL)"}
+]
+```
+
+**レスポンスコード**
+
+| コード | 説明                                 |
+| ---- | ------------------------------------------- |
+| 200  | 成功                                     |
+| 400  | リクエストデータの誤り                      |
+| 401  | 認証エラー、接続エラー |
+| 500  | Web API/GridDBでエラーが発生        |
+
+**レスポンスボディ**
+
+| 項目         | 説明                                                  | JSONデータ型 |
+| ------------ | ------------------------------------------------------------ | -------------- |
+| /status      | SQL DDL文のステータス。 `1` と `0` はそれぞれ成功と失敗を指します。`0`が含まれる場合も、HTTPのステータスコードは200(OK)が返ります。 | 数値         |
+| /stmt        | SQL DDL文                                         | 文字列         |
+| /message     | クエリ実行時に表示されるエラーメッセージ | 文字列         |
+
+
+例)
+
+```
+[ 
+ {
+  "status" : 1,
+  "stmt" : "CREATE TABLE myTable (key INTEGER PRIMARY KEY, value1 DOUBLE NOT NULL, value2 DOUBLE NOT NULL)",
+  "message": null 
+ }
+]
+```
+
+<a id="dml_select"></a>
+## SQL DML SELECT文実行
+
+指定したデータベースでひとつまたは複数のSQL SELECT文を実行します。
+
+**コマンドパス**
+
+`/:cluster/dbs/:database/sql/dml/query`
+
+| 項目      | 説明                                                    |
+|-----------|---------------------------------------------------------|
+| :cluster  | クラスタ名                                              |
+| :database | データベース名 (publicデータベースの場合は "public"を指定してください)      |
+
+**HTTPメソッド**
+
+POST
+
+**リクエストヘッダ**
+
+[リクエストヘッダ](#request_header)を参照してください。
+
+**リクエストボディ**
+
+ひとつまたは複数のSQL SELECT文を下記のJSON形式で指定してください。
+
+| 項目  | 説明                               | JSONデータ型 | 必須   |
+|-------|------------------------------------|--------------|--------|
+| /stmt | SQL SELECT文                       | 文字列       | ○   |
+
+例)
+
+```
+[
+  {"stmt" : "select * from container1"},
+  {"stmt" : "select * from myTable"}
+]
+```
+
+**レスポンスコード**
+
+| コード | 説明                           |
+|--------|--------------------------------|
+| 200    | 成功                           |
+| 400    | リクエストデータの誤り         |
+| 401    | 認証エラー、接続エラー         |
+| 404    | 指定したリソースが存在しない  |
+| 500    | Web API/GridDBでエラーが発生   |
+
+**レスポンスボディ**
+
+| 項目          | 説明               | JSONデータ型 |
+|---------------|-------------------|--------------|
+| /columns      | カラム情報の配列    | 配列         |
+| /columns/name | カラム名           | 文字列       |
+| /columns/type | データ型           | 文字列       |
+| /results         | SQL SELECT実行結果 | 配列         |
+| /responseSizeByte         | レスポンスサイズ | 数値         |
+
+例)
+
+```
+[
+  {
+    "columns":[
+      {"name":"date","type":"TIMESTAMP","timePrecision":"MILLISECOND"},
+      {"name":"value","type":"DOUBLE"},
+      {"name":"str","type":"STRING"}
+    ],
+    "results":[
+      ["2016-01-16T10:25:00.253Z",20.02,"row_example_1"],
+      ["2016-01-16T10:25:00.254Z",20.03,"row_example_2"],
+      ["2016-01-16T10:25:00.255Z",20.04,"row_example_3"],
+      ["2016-01-16T10:25:00.256Z",20.05,"row_example_4"]
+    ],
+    "responseSizeByte":180
+  },
+  {
+    "columns":[
+      {"name":"key","type":"INTEGER"},
+      {"name":"value1","type":"DOUBLE"},
+      {"name":"value2","type":"DOUBLE"}
+    ],
+    "results":[
+      [1,1.0,2.0]
+    ],
+    "responseSizeByte":20
+  }
+]
+```
+
+ロウのカラム値はカラムのデータ型に応じて、下記のJSONデータ型で出力されます。
+
+| <span style="white-space: nowrap;">分類</span>             | <span style="white-space: nowrap;">データ型</span>       |                         | JSONデータ型             | 例                         |
+|------------------|----------------|-------------------------|--------------------------|----------------------------|
+| 基本型           | ブール型       | BOOL                    | 真偽値 (true または false) | true                       |
+|                  | 文字列型       | STRING                  | 文字列                   | "GridDB"                   |
+|                  | 整数型         | BYTE/SHORT/INTEGER/LONG | 数値                     | 512                        |
+|                  | 浮動小数点数型 | FLOAT/DOUBLE            | 数値                     | 593.5                      |
+|                  | 時刻型         | TIMESTAMP               | 文字列 <br>・UTC<br>・フォーマット<br>YYYY-MM-DDThh:mm:ss.SSSZ                   | "2016-01-16T10:25:00.253Z" |
+
+【メモ】
+- カラムのデータがNULL値の場合は、JSONデータ型のnullが返ります。
+- GEOMETRY型、配列型は未サポートです。
+- GEOMETRY型と配列型カラムのデータ型は”UNKNOWN”となり、カラムのデータとしてはnullが返ります。
+- 複数のSQLを指定する際、どれかひとつでも実行に失敗した場合、HTTPレスポンスのステータスコードとして400が返ります。この際、失敗したSQL以降のSQLは実行されません。
+
+<a id="dml_update"></a>
+## SQL DML UPDATE文実行
+
+本機能はGridDBのデータベースでひとつまたは複数のSQL UPDATE文(UPDATE, INSERT, DELETE, REPLACE)を実行します。
+
+**コマンドパス**
+
+`/:cluster/dbs/:database/sql/dml/update`
+
+| 項目      | 説明                                            |
+| --------- | ------------------------------------------------------ |
+| :cluster  | クラスタ名                                           |
+| :database | データベース名 (publicデータベースの場合は "public"を指定してください) |
+
+**HTTPメソッド**
+
+POST
+
+**リクエストヘッダ**
+
+ [リクエストヘッダ](#request_header)参照してください。
+ 
+**リクエストボディ**
+
+ひとつまたは複数のSQL UPDATE文を下記のJSON形式で指定してください。
+
+| 項目  | 説明            | JSONデータ型 | 必須 |
+| ----- | ---------------------- | -------------- | -------- |
+| /stmt | SQL UPDATE文 | string         | ○        |
+
+例）
+
+```
+[ 
+  {"stmt" : "update container1 set col2 = 333 where col1 = 't3'"}
+]
+```
+
+**レスポンスコード**
+
+| コード | 説明                                 |
+| ---- | ------------------------------------------- |
+| 200  | 成功                                     |
+| 400  | リクエストデータの誤り                      |
+| 401  | 認証エラー、接続エラー |
+| 500  | Web API/GridDBでエラーが発生        |
+
+**レスポンスボディ**
+
+| 項目         | 説明                                                  | JSONデータ型 |
+| ------------ | ------------------------------------------------------------ | -------------- |
+| /status      | SQL UPDATE文のステータス。 `1` と `0` はそれぞれ成功と失敗を指します。`0`が含まれる場合も、HTTPのステータスコードは200(OK)が返ります。 | 数値         |
+| /message     | クエリ実行時に表示されるエラーメッセージ | 文字列         |
+| /updatedRows | 更新または挿入されたロウ数                        | 数値         |
+| /stmt        | SQL UPDATE文                                         | 文字列         |
+
+例)
+
+```
+[ 
+  {
+    "status" : 1,
+    "updatedRows" : 2,
+    "stmt" : "update container1 set col2 = 333 where col1 = 't3'",
+    "message": null 
+  }
+]
+```
+
+<a id="dcl"></a>
+## SQL DCL文実行
+
+本機能はGridDBのデータベースでひとつまたは複数のSQL DCL文(GRANT, REVOKE, SET PASSWORD)を実行します。
+
+**コマンドパス**
+
+`/:cluster/dbs/:database/sql/dcl`
+
+| 項目      | 説明                                            |
+| --------- | ------------------------------------------------------ |
+| :cluster  | クラスタ名                                           |
+| :database | データベース名 (publicデータベースの場合は "public"を指定してください) |
+
+**HTTPメソッド**
+
+POST
+
+**リクエストヘッダ**
+
+ [リクエストヘッダ](#request_header)参照してください。
+ 
+**リクエストボディ**
+
+ひとつまたは複数のSQL DCL文を下記のJSON形式で指定してください。
+
+| 項目  | 説明            | JSONデータ型 | 必須 |
+| ----- | ---------------------- | -------------- | -------- |
+| /stmt | SQL DCL文 | string         | ○        |
+
+
+例）
+
+```
+[ 
+ {"stmt" : "grant all on database1 to user1"}
+]
+```
+
+**レスポンスコード**
+
+| コード | 説明                                 |
+| ---- | ------------------------------------------- |
+| 200  | 成功                                     |
+| 400  | リクエストデータの誤り                      |
+| 401  | 認証エラー、接続エラー |
+| 500  | Web API/GridDBでエラーが発生        |
+
+**レスポンスボディ**
+
+| 項目         | 説明                                                  | JSONデータ型 |
+| ------------ | ------------------------------------------------------------ | -------------- |
+| /status      | SQL DLC文のステータス。 `1` と `0` はそれぞれ成功と失敗を指します。`0`が含まれる場合も、HTTPのステータスコードは200(OK)が返ります。 | 数値         |
+| /message     | クエリ実行時に表示されるエラーメッセージ | 文字列         |
+| /stmt        | SQL DCL文                                         | 文字列         |
+
+Example:
+
+```
+[ 
+ {
+  "status" : 1,
+  "stmt" : "grant all on database1 to user1",
+  "message": null 
+ }
+]
+```
+
+【非推奨】SQL SELECT文実行
 ----------------
 
 指定したデータベースでひとつまたは複数のSQL SELECT文を実行します。
@@ -1409,8 +1777,7 @@ POST
 ```
 [
   {"stmt" : "select * from container1"},
-  {"stmt" : "select column1 from container2 where column1>=0"},
-  {"stmt" : "select column2, column3 from container3 order by column1 desc"}
+  {"stmt" : "select * from myTable"}
 ]
 ```
 
@@ -1432,34 +1799,36 @@ POST
 | /columns/name | カラム名           | 文字列       |
 | /columns/type | データ型           | 文字列       |
 | /results         | SQL SELECT実行結果 | 配列         |
+| /responseSizeByte         | レスポンスサイズ | 数値         |
 
 例)
 
 ```
 [
   {
-    "columns" : [
-      {"name": "date", "type": "TIMESTAMP"},
-      {"name": "value", "type": "DOUBLE"},
-      {"name": "str", "type": "STRING"}
+    "columns":[
+      {"name":"date","type":"TIMESTAMP","timePrecision":"MILLISECOND"},
+      {"name":"value","type":"DOUBLE"},
+      {"name":"str","type":"STRING"}
     ],
-    "results" : [
-      ["2016-01-16T10:25:00.253Z", 100.5, "normal" ],
-      ["2016-01-16T10:35:00.691Z", 173.9, "normal" ],
-      ["2016-01-16T10:45:00.032Z", 173.9, null]
-    ]
+    "results":[
+      ["2016-01-16T10:25:00.253Z",20.02,"row_example_1"],
+      ["2016-01-16T10:25:00.254Z",20.03,"row_example_2"],
+      ["2016-01-16T10:25:00.255Z",20.04,"row_example_3"],
+      ["2016-01-16T10:25:00.256Z",20.05,"row_example_4"]
+    ],
+    "responseSizeByte":180
   },
   {
-    "columns" : [
-      {"name": "date", "type": "TIMESTAMP"},
-      {"name": "value", "type": "DOUBLE"},
-      {"name": "str", "type": "STRING"}
+    "columns":[
+      {"name":"key","type":"INTEGER"},
+      {"name":"value1","type":"DOUBLE"},
+      {"name":"value2","type":"DOUBLE"}
     ],
-    "results" : [
-      ["2016-01-16T10:25:00.253Z", 100.5, "normal" ],
-      ["2016-01-16T10:35:00.691Z", 173.9, "normal" ],
-      ["2016-01-16T10:45:00.032Z", 173.9, null]
-    ]
+    "results":[
+      [1,1.0,2.0]
+    ],
+    "responseSizeByte":20
   }
 ]
 ```
@@ -1480,7 +1849,7 @@ POST
 - GEOMETRY型と配列型カラムのデータ型は”UNKNOWN”となり、カラムのデータとしてはnullが返ります。
 - 複数のSQLを指定する際、どれかひとつでも実行に失敗した場合、HTTPレスポンスのステータスコードとして400が返ります。この際、失敗したSQL以降のSQLは実行されません。
 
-SQL UPDATE文実行
+【非推奨】SQL UPDATE文実行
 ----------------
 
 本機能はGridDBのデータベースでひとつまたは複数のSQL UPDATE文を実行します。
@@ -1518,8 +1887,7 @@ POST
 
 ```
 [ 
-  {"stmt" : "update container1 set col2 = 333 where col1 = 't3'"},
-  {"stmt" : "insert into container1(col1, col2) values('t4', 4)"}
+  {"stmt" : "update container1 set col2 = 333 where col1 = 't3'"}
 ]
 ```
 
@@ -1550,13 +1918,7 @@ Example:
     "updatedRows" : 2,
     "stmt" : "update container1 set col2 = 333 where col1 = 't3'",
     "message": null 
-  },
-  {
-    "status" : 0,
-    "updatedRows" : 0,
-    "stmt" : "insert into container1(col1, col2) values('t4', 4)" ,
-    "message": "[240001:SQL_COMPILE_SYNTAX_ERROR] Specified insert column='col1' is not found on updating (sql=\"insert into container1(col1, col2) values('t4', 4)\") (db='public') (user='admin') (clientId='1dafa133-df4-43cb-85b3-3b17593d298c:2') (clientNd='{clientId=1450, address=10.116.41.133:58632}') (address=10.116.227.26:20001, partitionId=557)" 
-  } 
+  }
 ]
 ```
 
@@ -1603,3 +1965,11 @@ Web APIの動作確認は、Linuxのcurlコマンド等で行ってください�
   http://host:port/griddb/v2/cluster/dbs/public/sql/select
   ```
 
+アンインストール
+----------------
+
+Web APIを停止したあと、以下の手順でディレクトリおよび配置したファイルを削除してください。
+
+``` shell
+# rpm -e griddb-ce-webapi
+```

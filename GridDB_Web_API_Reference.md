@@ -4,56 +4,92 @@
 Overview
 ----
 
-GridDB provides a Web API to register rows, acquire rows and execute TQL and SQL statements for the GridDB cluster.  The Web API is configured as a web application.
+GridDB provides a Web API to register rows, acquire rows, and execute TQL and SQL statements for the GridDB cluster. The Web API is configured as a web application.
 
-The functions of GridDB Web API are shown below.
+The following operations can be performed with Web API:
 
 - Row acquisition
-  - Acquires rows from a container.
-  - Acquires rows from multiple containers.
+  - Acquire rows from a container.
+  - Acquire rows from multiple containers.
 - Row registration
-  - Registers rows in a container.
-  - Registers rows in multiple containers.
+  - Register rows in a container.
+  - Register rows in multiple containers.
 - Database connection confirmation
-  - Checks connection to a database.
+  - Check connection to a database.
 - Container list acquisition
-  - Acquires a container list from a database.
+  - Acquire a container list from a database.
 - Container information acquisition
-  - Acquires container information (column etc.) from a container.
+  - Acquire container information (on columns and others) from a container.
 - TQL statement execution
-  - Executes multiple SQL statements and acquires the results.
+  - Execute multiple SQL statements and acquire the results.
 - Row deletion
-  - Deletes a row from a container.
+  - Delete a row from a container.
 - Container creation
-  - Creates a new container for a database.
+  - Create a new container for a database.
 - Container deletion
-  - Deletes a container from a database.
+  - Delete a container from a database.
+- SQL DDL execution
+  - Execute SQL DDL statements on a specified database.
+- SQL DML SELECT execution
+  - Execute SQL SELECT statements on a specified database.
+- SQL DML UPDATE execution
+  - Execute SQL UPDATE statements on a specified database.
+- SQL DCL execution
+  - Execute SQL DCL statements on a specified database.
 - SQL SELECT execution
-  - Executes a SQL SELECT statement.
+  - Execute an SQL SELECT statement on a specified database.
 - SQL UPDATE execution
-  - Executes a SQL UPDATE statement.
+  - Execute an SQL UPDATE statement on a specified database.
 
-Using Web API
+Using the Web API
 ---------------------
 
-To use Web API, Java must be installed beforehand. The compatible versions are:
+Before using the Web API, you must install Java. The compatible versions are:
 
 - Oracle Java 8
 - Oracle Java 11
 - RedHat OpenJDK 8
 - RedHat OpenJDK 11
 
-The procedure to configure the Web API is as follows:
+The procedure to install and configure the Web API is as follows:
 
-1.  Setting of the destination cluster
-2.  Setting of the Web API operation (optional)
-3.  Setting of the log output destination (optional)
+1.  Install the Web API package
+2.  Set the destination cluster
+3.  Set the Web API behavior (optional)
+4.  Set the log output destination (optional)
 
-### Setting of the destination cluster
+### Installing the Web API package
 
-Specify the information of the cluster to be connected from the Web API in the cluster information definition file (`${GS_WEBAPI_HOME}/conf/repository.json`).
+Install the Web API package (griddb-ce-webapi-XX.X-linux.x86_64.rpm).
 
-Based on the value of the cluster definition file (gs_cluster.json) of the cluster to be connected, specify the cluster configuration method to "mode", and the address information corresponding to the method.
+Log in to a machine installed with the Web API as a root user, and install the package using the command below.
+
+``` example
+# rpm -Uvh griddb-ce-webapi-X.X.X-linux.x86_64.rpm
+```
+
+*X.X.X indicates the GridDB version.
+
+After installation, the .jar file and the setup directory for the Web API are installed as follows:
+
+``` example
+/usr/griddb-ce-webapi-X.X.X/                             : Web API installation directory
+                     conf/
+                     etc/
+                     griddb-webapi-ce-X.X.X.jar          : Web API jar file
+                     
+/usr/girddb-webapi/griddb-webapi.jar -> /usr/griddb-ce-webapi-X.X.X/griddb-webapi-ce-X.X.X.jar
+
+/var/lib/gridstore/webapi/conf/griddb_webapi.properties  : Configuration file
+                              /repository.json           : Cluster information definition file
+                         /log                            : Log output directory
+```
+
+### Setting the destination cluster
+
+Specify the information of the cluster to be connected from the Web API in the cluster information definition file (`/var/lib/gridstore/webapi/conf/repository.json`).
+
+Based on the value of the cluster definition file (gs_cluster.json) of the cluster to be connected, specify the cluster configuration method to "mode" and provide the address information corresponding to the method specified.
 
 | Parameter          | JSON data type | Description                                                 |
 |-----------------------------|----------|------------------------------------------------------|
@@ -66,8 +102,8 @@ Based on the value of the cluster definition file (gs_cluster.json) of the clust
 |   jdbcAddress        | string         | Multicast address for SQL execution                 |
 |   jdbcPort           | integer            | Multicast port for SQL execution                             |
 | (mode=FIXED_LIST) |          |                                                      |
-|   transactionMember  | string         | address and port for row registration and acquisition                     |
-|   sqlMember          | string         | address and port for SQL execution                       |
+|   transactionMember  | string         | Address and port for row registration and acquisition                     |
+|   sqlMember          | string         | Address and port for SQL execution                       |
 | (mode=PROVIDER)             |          |                                                      |
 |   providerUrl        | string         | Provider URL for all functions                            |
 
@@ -89,11 +125,11 @@ Example for the multicast method
 [Memo]
 - If the contents of repository.json are invalid (e.g., format error, mandatory parameter not defined, etc.), a Web API startup will result in an error.
 
-### Setting of Web API behavior (optional)
+### Setting the Web API behavior (optional)
 
-Set Web API behavior in the configuration file (`${GS_WEBAPI_HOME}/conf/griddb_webapi.properties`).
+Set the Web API behavior in the configuration file (`/var/lib/gridstore/webapi/conf/griddb_webapi.properties`).
 
-Even without changing the initial settings, Web API can work while all the parameters remain at the default values. Change the values as required by the system.
+Without a change to the initial settings, the Web API works while all the parameters remain at the default values. Change the values as required by the system.
 
 #### GridDB configuration
 
@@ -119,37 +155,42 @@ Even without changing the initial settings, Web API can work while all the param
 [Memo]
 - The Web API needs to be restarted to reflect the environment settings.
 
-### Setting of the log output destination (optional)
+### Setting the log output destination (optional)
 
 The Web API logs are output to the following directory by default.
 
 ``` example
-${GS_WEBAPI_HOME}/log
+/var/lib/gridstore/webapi/log
 ```
 
 To change the output directory, edit the following file:
 
 ``` example
-${GS_WEBAPI_HOME}/conf/logback.xml
+/var/lib/gridstore/webapi/conf/logback.xml
+```
+
+### Starting and stopping
+
+Web API applications can be started and stopped using the service command.
+
+``` example
+# service griddb-webapi [start|stop|status|restart]
 ```
 
 Common functions (HTTP request/response)
 -----------------------------------
 
-This chapter describes the HTTP request/response part common to each function.
+This chapter describes the HTTP requests/responses common to each function.
 
 ### URI
 
-The URI to be accessed when using the Web API.
+This is the URL to be accessed when using the Web API.
 
 `http://(Web API server IP) :(port)/griddb/v2/(command path)`
 
 [Memo]
-- For "(command path)" above, see the section on each function.
-- Operations on clusters, databases and containers whose name contains any special characters ('-', '.', '/', '=') cannot be performed in the Web API.
-- When you change port (default is 8081) used in URI, please do the following steps.
-    1. Copy webapi-ce/src/main/resource/application.properties to your working directory
-    2. Edit server.port in it
+- For the "(command path)" above, see the section on each function.
+- Operations on clusters, databases, and containers whose name contains any special characters ('-', '.', '/', '=') cannot be performed in the Web API.
 
 <a id="request_header"></a>
 ### Request header
@@ -163,7 +204,7 @@ Specify the following headers to the request header (common to all APIs):
 
 ### Request body
 
-Specify the request body in JSON format. Please refer to the JSON format of each functions.
+Specify the request body in JSON format. Please refer to the JSON format of each function.
 
 [Memo]
 - Write JSON format data in UTF-8.
@@ -174,10 +215,10 @@ Specify the request body in JSON format. Please refer to the JSON format of each
   
 - Otherwise, an error will occur.
   - Example:
-    - 2016/01/17T14: 32: 33.888Z ... Error due to a year, month and date separator error
+    - 2016/01/17T14: 32: 33.888Z ... Error due to a year, month, and date separator error
     - 2016-01-18 ... Error because time is not specified
 
-- The maximum size of JSON data in the request body can be set in ` griddb_webapi.properties` as below (unit: MB):
+- The maximum size of JSON data in the request body can be set in `griddb_webapi.properties` as below (unit: MB):
 
   ```
   maxRequestSize=20
@@ -245,7 +286,7 @@ Refer to the [request header](#request_header).
 | /offset    | Acquisition start position                  | an integer from 0 | \-    |
 | /limit     | The number of rows to be acquired           | an integer from 1 | ✓    |
 | /condition | Conditional expression (For details, see the "GridDB TQL Reference".)                        | string            | \-    |
-| /sort      | Sorting condition (ascending or descending order of values of a specified column; specified as "column name asc" or "column name desc" ) | string            | \-    |
+| /sort      | Sorting condition (ascending or descending order of values of a specified column; specified as "column name asc" or "column name desc") | string            | \-    |
 
 [Memo]
 - If the value specified by limit is greater than the value of maxLimit in the configuration file, the value of maxLimit is used in the limit clause.
@@ -268,8 +309,8 @@ The example below acquires row data with a column "id" value of 50 or more, sort
 | 200  | Success                           |
 | 400  | Incorrect request data         |
 | 401  | An authentication error, a connection error         |
-| 404  | The specified resource is not found  |
-| 500  | An error occurs in Web API or GridDB   |
+| 404  | The specified resource is not found.  |
+| 500  | An error has occurred in Web API or GridDB.   |
 
 **Response body**
 
@@ -280,7 +321,7 @@ Acquired rows will be returned as the following JSON data:
 | /columns | An array of column information                            | array         |
 | /columns/name    | Column name                                               | string       |
 | /columns/type    | JSON Data type                                            | string       |
-| /columns/rows    | An array of rows                                      | array         |
+| /rows    | An array of rows                                      | array         |
 | /total  | Number of rows acquired when offset and limit are ignored | number         |
 | /offset  | Acquisition start position                                | number         |
 | /limit   | Number of acquisitions applied                            | number         |
@@ -305,11 +346,11 @@ Example:
 }
 ```
 
-<a name="data-type-json-type"> Depending on the column data type, column values with the following JSON data type will be returned: </a>
+<a name="data-type-json-type"> Depending on the column data type, the row's column values will be returned  with the following JSON data type: </a>
 
 | Classification | Data type |  | JSON data type | Example                                   |
 |------------------|----------------|-------------------------|------------------------------|--------------------------------------|
-| Primitive | Boolean type | BOOL | Boolean (true/false) | true                                 |
+| Primitive | Boolean type | BOOL | Boolean value (true or false) | true                                 |
 |                  | String type | STRING | String | "GridDB"                             |
 |                  | Integer type | BYTE/SHORT/INTEGER/LONG | Number | 512                                  |
 |                  | Floating point type | FLOAT/DOUBLE | Number | 593.5                                |
@@ -382,8 +423,8 @@ The following example acquires row data with the column "id" value of 50 or more
 | 200  | Success                                     |
 | 400  | Incorrect request data                      |
 | 401  | An authentication error, a connection error |
-| 404  | The specified resource is not found             |
-| 500  | An error occurs in Web API or GridDB        |
+| 404  | The specified resource is not found.             |
+| 500  | An error has occurred in Web API or GridDB.        |
 
 **Response body**
 
@@ -408,8 +449,8 @@ The value of `rows` is returned as the following JSON data:
 
 [Memo]
 
-- IF the container does not have a BLOB column, or the query result has no BLOB data, this API returns a zip file with no file inside.
-- If the container has two or more BLOB columns, the BLOB data files have the same name with a prefix number attached. e.g. 1_picture.jpg and 2_picture.jpg. 
+- If the container does not have a BLOB column, or the query result has no BLOB data, the Web API returns a zip file with no file inside.
+- If the container has two or more BLOB columns, the BLOB data files have the same name with a prefix number attached. e.g., 1_picture.jpg and 2_picture.jpg. 
 - If the row value of `fileNameCol` has an invalid file name, the API server generates a random name.
 - The value of a BLOB column in the JSON data is the same with the BLOB file name in a zip file, and both start with the prefix `(BLOB)`.
 - The response data has two data types: JSON data and form data. They are separated by a string that starts with the `--` prefix. The JSON data is in the first part, and the form data is in the second part. To retrieve the zip file that contains all BLOB data files, copy the binary content (start with the `PK` prefix) and save it to a file with a `.zip` extension.
@@ -436,12 +477,12 @@ Depending on the column data type, column values with the following JSON data ty
 
 | Classification | Data type      |                         | JSON data type                                               | Example                                                    |
 | -------------- | ------------------- | ----------------------- | ------------------------------------------------------------ | ---------------------------------------------------------- |
-| Primitive      | Boolean type        | BOOL                    | Boolean (true/false)                                         | true                                                       |
+| Primitive      | Boolean type        | BOOL                    | Boolean value (true or false)                                         | true                                                       |
 |                | String type         | STRING                  | String                                                       | "GridDB"                                                   |
 |                | Integer type        | BYTE/SHORT/INTEGER/LONG | Number                                                       | 512                                                        |
 |                | Floating point type | FLOAT/DOUBLE            | Number                                                       | 593.5                                                      |
 |                | Date and time type  | TIMESTAMP               | Text string<br>・UTC<br>・format<br>YYYY-MM-DDThh:mm:ss.SSSZ | "2016-01-16T10:25:00.253Z"                                 |
-|                | Spatial-type        | GEOMETRY                | Text string (WKT representation)                             | POLYGON((0 0,10 0,10 10,0 10,0 0))                         |
+|                | Spatial type        | GEOMETRY                | Text string (WKT representation)                             | POLYGON((0 0,10 0,10 10,0 10,0 0))                         |
 | Array          | Boolean type        | BOOL                    | Array of Boolean values                                      | \[true, false, true]\                                      |
 |                | String type         | STRING                  | Array of text string values                                  | \["A","B","C"\]                                            |
 |                | Integer type        | BYTE/SHORT/INTEGER/LONG | Array of numbers                                             | \[100, 39, 535\]                                           |
@@ -478,9 +519,9 @@ Refer to the [request header](#request_header).
 | Item            | Description                                                  | JSON data type           | Required | Default value |
 | --------------- | ------------------------------------------------------------ | ------------------------ | -------- | ------------- |
 | /name           | Container name                                               | string                   | ✓        | -             |
-| /startKeyValue  | - Row key value to specify the start position to obtain row data.<br />- This applies only for a container that has a single row key with the data type LONG, INTEGER, or TIMESTAMP.<br />- When the row key is TIMESTAMP, the start key value must be in the following format: `yyyy-MM-ddTHH:mm:ss.SSSZ` | string or number         | -        | -             |
-| /finishKeyValue | - Row key value to specify the last position to obtain row data.<br />- This applies only for a container that has a single row key with the data type LONG, INTEGER, or TIMESTAMP.<br />- When the row key is TIMESTAMP, the finish key value must be in the following format: `yyyy-MM-ddTHH:mm:ss.SSSZ` | string or number           | -        | -             |
-| /keyValues      | - List of row key values used as search conditions to obtain row data. The row data with a row key that matches with a value in this list will be returned.<br />- This applies only for a container that has a single row key with the data type STRING, LONG, INTEGER or TIMESTAMP.<br />- If `startKeyValue`, `finishKeyValue`, and `keyValues` are specified at the same time, API obtains rows using the `keyValues` condition and ignores `startKeyValue` and `finishKeyValue`.<br />- When the row key is TIMESTAMP, the key value must be in the following format: `yyyy-MM-ddTHH:mm:ss.SSSZ` | array of strings/numbers | -        | -             |
+| /startKeyValue  | - Row key value to specify the start position to obtain row data.<br />- This applies only to a container that has a single row key with the data type LONG, INTEGER, or TIMESTAMP.<br />- When the row key is TIMESTAMP, the start key value must be in the following format: `yyyy-MM-ddTHH:mm:ss.SSSZ` | string or number         | -        | -             |
+| /finishKeyValue | - Row key value to specify the last position to obtain row data.<br />- This applies only to a container that has a single row key with the data type LONG, INTEGER, or TIMESTAMP.<br />- When the row key is TIMESTAMP, the finish key value must be in the following format: `yyyy-MM-ddTHH:mm:ss.SSSZ` | string or number           | -        | -             |
+| /keyValues      | - List of row key values used as search conditions to obtain row data. The row data with a row key that matches with a value in this list will be returned.<br />- This applies only to a container that has a single row key with the data type STRING, LONG, INTEGER, or TIMESTAMP.<br />- If `startKeyValue`, `finishKeyValue`, and `keyValues` are specified at the same time, the Web API obtains rows using the `keyValues` condition and ignores `startKeyValue` and `finishKeyValue`.<br />- When the row key is TIMESTAMP, the key value must be in the following format: `yyyy-MM-ddTHH:mm:ss.SSSZ` | array of strings/numbers | -        | -             |
 | /offset         | Acquisition start position. The offset is set for each container. | an integer from 0        | \-       | 0             |
 | /limit          | The number of rows to be acquired. The limit is set for each container. | an integer from 1        | -        | 10000         |
 
@@ -490,7 +531,7 @@ Refer to the [request header](#request_header).
 - BLOB data is returned in base64 format; thus, base64 data needs to be decoded after obtaining BLOB data.
 - The conditions `startKeyValue`, `finishKeyValue`, and `keyValues` are only supported for a container with a single row key.
 
-The following example acquires row data from two containers. The first container acquires row data with a key value from 0 to 100, from which 10 values from the 2nd row are acquired. The second container only acquires row data with a key value 1, 3, or 5.
+The following example acquires row data from two containers. The first container acquires row data with a key value from 0 to 100, from which 10 values from the second row are acquired. The second container only acquires row data with a key value 1, 3, or 5.
 
 ```
 [
@@ -515,8 +556,8 @@ The following example acquires row data from two containers. The first container
 | 200  | Success                                     |
 | 400  | Incorrect request data                      |
 | 401  | An authentication error, a connection error |
-| 404  | The specified resource is not found             |
-| 500  | An error occurs in Web API or GridDB        |
+| 404  | The specified resource is not found.             |
+| 500  | An error has occurred in Web API or GridDB.        |
 
 **Response body**
 
@@ -588,7 +629,7 @@ This function registers rows in a container.
 Specify the rows to be registered in JSON format. Multiple rows can be registered in one container.
 
 [Memo]
-- The data of one row / multiple rows can be specified and registered in one container.
+- The data of one or multiple rows can be specified and registered in one container.
 - The container to be registered must exist.
 - If the container has a row key that already exists in the container, that row will be updated. If the container has a row key that does not exist in the container, a row will be newly created.
 - If the container has no row key, all rows will be newly created.
@@ -615,7 +656,7 @@ Refer to the [request header](#request_header).
 
 **Request body**
 
-Specify the rows as the following JSON format:
+Specify the rows in the following JSON format:
 
 | Item      | Description                                 | JSON data type    | Required |
 |-----------|--------------------|---------------|------|
@@ -631,7 +672,7 @@ Example:
 ]
 ```
 
-<a name="data-type-json-type-registration"> Depending on the column data type, describe a column value with the following JSON data type:</a>
+<a name="data-type-json-type-registration"> Depending on the column data type, describe the row's column value with the following JSON data type:</a>
 
 | Classification | Data type |  | JSON data type | Example                                   |
 |-----------------|----------------|-------------------------|-----------------------------------|--------------------------------------|
@@ -661,8 +702,8 @@ Example:
 | 200  | Success                           |
 | 400  | Incorrect request data         |
 | 401  | An authentication error, a connection error         |
-| 404  | The specified resource is not found  |
-| 500  | An error occurs in Web API or GridDB   |
+| 404  | The specified resource is not found.  |
+| 500  | An error has occurred in Web API or GridDB.   |
 
 **Response body**
 
@@ -688,7 +729,7 @@ Specify the rows to be registered in form data. Multiple rows can be registered 
 
 [Memo]
 
-- The data of one row or multiple rows can be specified and registered in one container.
+- The data of one or multiple rows can be specified and registered in one container.
 - The container to be registered must exist.
 - If the container has a row key that already exists in the container, that row will be updated. If the container has a row key that does not exist in the container, a row will be newly created.
 - If the container has no row key, a row will be newly created.
@@ -796,14 +837,14 @@ Depending on the column data type, describe a column value with the following JS
 | 200  | Success                                     |
 | 400  | Incorrect request data                      |
 | 401  | An authentication error, a connection error |
-| 404  | The specified resource is not found             |
-| 500  | An error occurs in Web API or GridDB        |
+| 404  | The specified resource is not found.             |
+| 500  | An error has occurred in Web API or GridDB.        |
 
 **Response body**
 
 If the process is successful, nothing is returned.
 
-Please refer to [response body](#response_body) in case of failure.
+Please refer to the [response body](#response_body) in case of failure.
 
 ### Row registration in multiple containers
 
@@ -813,7 +854,7 @@ Specify the rows to be registered in JSON format. Multiple rows can be registere
 
 [Memo]
 
-- The data of one row / multiple rows can be specified and registered in one container.
+- The data of one or multiple rows can be specified and registered in one container.
 - The containers to be registered must exist.
 - If the container has a row key that already exists in the container, that row will be updated. If the container has a row key that does not exist in the container, a row will be newly created.
 - If the container has no row key, all rows will be newly created.
@@ -840,7 +881,7 @@ Refer to the [request header](#request_header).
 
 **Request body**
 
-Specify the rows as the following JSON format:
+Specify the rows in the following JSON format:
 
 | Item           | Description                      | JSON data type | Required |
 | -------------- | -------------------------------- | -------------- | -------- |
@@ -889,8 +930,8 @@ Refer to [this section](#data-type-json-type-registration).
 | 200  | Success                                     |
 | 400  | Incorrect request data                      |
 | 401  | An authentication error, a connection error |
-| 404  | The specified resource is not found             |
-| 500  | An error occurs in Web API or GridDB        |
+| 404  | The specified resource is not found.             |
+| 500  | An error has occurred in Web API or GridDB.        |
 
 **Response body**
 
@@ -951,13 +992,13 @@ Refer to the [request header](#request_header).
 | 200  | Success                           |
 | 400  | Incorrect request data         |
 | 401  | An authentication error, a connection error         |
-| 500  | An error occurs in Web API or GridDB   |
+| 500  | An error has occurred in Web API or GridDB.   |
 
 **Response body**
 
 If the process is successful, nothing is returned.
 
-Please refer to [response body](#response_body) in case of failure.
+Please refer to the [response body](#response_body) in case of failure.
 
 Container list acquisition
 --------
@@ -991,7 +1032,7 @@ Refer to the [request header](#request_header).
 | /sort   | Sorting expression                | string                                | \-    |
 
 [Memo]
-- offset can be used together with "limit".
+- offset must be used together with "limit".
 
 **Response code**
 
@@ -1000,7 +1041,7 @@ Refer to the [request header](#request_header).
 | 200  | Success                           |
 | 400  | Incorrect request data         |
 | 401  | An authentication error, a connection error         |
-| 500  | An error occurs in Web API or GridDB   |
+| 500  | An error has occurred in Web API or GridDB.   |
 
 **Response body**
 
@@ -1062,8 +1103,8 @@ Refer to the [request header](#request_header).
 | 200  | Success                           |
 | 400  | Incorrect request data         |
 | 401  | An authentication error, a connection error         |
-| 404  | The specified resource is not found  |
-| 500  | An error occurs in Web API or GridDB   |
+| 404  | The specified resource is not found.  |
+| 500  | An error has occurred in Web API or GridDB.   |
 
 **Response body**
 
@@ -1071,7 +1112,7 @@ Refer to the [request header](#request_header).
 |-----------------|-----------------|--------------|
 | /container_name | Container name | string         |
 | /container_type | Container type                    | string (COLLECTION or TIME_SERIES)       |
-| /rowkey          | Existence of a row key                    | Boolean (true or false)      |
+| /rowkey          | Existence of a row key                    | Boolean value (true or false)      |
 | /columns          | An array of column information         | array         |
 | /columns/name    | Column name                                               | string       |
 | /columns/type             | Data type of column            | string       |
@@ -1097,8 +1138,8 @@ Example:
 TQL command execution
 --------
 
-Execute a TQL statement. Multiple TQL statements can be sent at once.
-The value of specific columns can be set to acquire it in the execution result.
+Execute a TQL statement. Multiple TQL statements can be sent at a time.
+The value of only specific columns can be acquired in the execution result.
 
 **Path**
 
@@ -1124,6 +1165,7 @@ Refer to the [request header](#request_header).
 | /name   | Target container name             | string         | ✓    |
 | /stmt    | TQL statement                     | string         | ✓    |
 | /columns | Array of acquisition column names | array          | \-    |
+| /hasPartialExecution   | whether to set partial execution mode; no default value. | Boolean value (true or false)       | -    |
 
 [Memo]
 - If the value specified by limit in TQL is greater than the value of maxLimit in the configuration file, the value of maxLimit is used in the limit clause.
@@ -1132,9 +1174,8 @@ Example:
 
 ```
 [
-  {"name" : "container1", "stmt" : "select * limit 100", "columns" : null},
-  {"name" : "container2", "stmt" : "select * where column1>=0", "columns" : ["column1"]},
-  {"name" : "container3", "stmt" : "select SUM(*) order by column1 desc", "columns" : null}
+  {"name" : "container1", "stmt" : "select * limit 100", "columns" : null, "hasPartialExecution" : true},
+  {"name" : "myTable", "stmt" : "select * limit 100", "columns" : ["value1"]} 
 ]
 ```
 
@@ -1145,8 +1186,8 @@ Example:
 | 200  | Success                           |
 | 400  | Incorrect request data         |
 | 401  | An authentication error, a connection error         |
-| 404  | The specified resource is not found  |
-| 500  | An error occurs in Web API or GridDB   |
+| 404  | The specified resource is not found.  |
+| 500  | An error has occurred in Web API or GridDB.   |
 
 
 **Response body**
@@ -1160,6 +1201,7 @@ Example:
 | /total | Number of acquisitions when offset and limit are ignored | Number         |
 | /offset  | Acquisition start position                                | Number         |
 | /limit   | Number of acquisitions applied                            | Number         |
+| /responseSizeByte        | Response size   | Number         |
 
 [Memo]
 - If the TQL statement is an aggregate operation, total, offset, and limit are not included in the response body.
@@ -1169,27 +1211,32 @@ Example:
 ```
 [
   {
-    "columns" : [
-      {"name": "date", "type": "TIMESTAMP"},
-      {"name": "value", "type": "DOUBLE"},
-      {"name": "str", "type": "STRING"}
+    "columns":[
+      {"name":"date","type":"TIMESTAMP","timePrecision":"MILLISECOND"},
+      {"name":"value","type":"DOUBLE"},{"name":"str","type":"STRING"}
     ],
-    "results" : [
-      ["2016-01-16T10:25:00.253Z", 100.5, "normal" ],
-      ["2016-01-16T10:35:00.691Z", 173.9, "normal" ],
-      ["2016-01-16T10:45:00.032Z", 173.9, null]
+    "results":[
+      ["2016-01-16T10:25:00.253Z",20.02,"row_example_1"],
+      ["2016-01-16T10:25:00.254Z",20.03,"row_example_2"],
+      ["2016-01-16T10:25:00.255Z",20.04,"row_example_3"],
+      ["2016-01-16T10:25:00.256Z",20.05,"row_example_4"]
     ],
-    "total" : 1000125,
-    "offset" : 0,
-    "limit" : 3
+    "offset":0,
+    "limit":100,
+    "total":4,
+    "responseSizeByte":116
   },
   {
-    "columns" : [
-      {"name": "aggregationResult", "type": "LONG"}
+    "columns":[
+      {"name":"value1","type":"DOUBLE"}
+  ],
+    "results":[
+      [1.0]
     ],
-    "results" : [
-      [55]
-    ]
+    "offset":0,
+    "limit":100,
+    "total":1,
+    "responseSizeByte":8
   }
 ]
 ```
@@ -1241,7 +1288,7 @@ Example:
 | 400  | Incorrect request data         |
 | 401  | An authentication error, a connection error         |
 | 404  | The specified resource is not found  |
-| 500  | An error occurs in Web API or GridDB   |
+| 500  | An error has occurred in Web API or GridDB   |
 
 **Response body**
 
@@ -1252,10 +1299,10 @@ Please refer to [response body](#response_body) in case of failure.
 [Memo]
 - Containers with composite row keys are not supported. When the command is executed, IllegalStateException occurs.
 
-Creating a container
+Container creation
 --------
 
-Create a container.
+This function creates a container.
 
 **Path**
 
@@ -1280,7 +1327,7 @@ Refer to the [request header](#request_header).
 |-----------------|-----------------|--------------|------|
 | /container_name | Container name | string         | ✓    |
 | /container_type | Container type                    | string (COLLECTION or TIME_SERIES)       | ✓    |
-| /rowkey          | Existence of a row key                    | Boolean (true or false)      | ✓    |
+| /rowkey          | Existence of a row key                    | Boolean value (true or false)      | ✓    |
 | /columns          | An array of column information         | array         | ✓    |
 | /columns/name    | Column name                                               | string       | ✓    |
 | /columns/type             | Data type of column            | string       | ✓    |
@@ -1309,13 +1356,13 @@ Example:
 | 400  | Incorrect request data         |
 | 401  | An authentication error, a connection error         |
 | 409  | The specified container already exists.  |
-| 500  | An error occurs in Web API or GridDB   |
+| 500  | An error has occurred in Web API or GridDB.   |
 
 **Response body**
 
 If the process is successful, nothing is returned.
 
-Please refer to [response body](#response_body) in case of failure.
+Please refer to the [response body](#response_body) in case of failure.
 
 [Memo]
 - Composite row keys and composite indexes are not supported.
@@ -1323,7 +1370,7 @@ Please refer to [response body](#response_body) in case of failure.
 Container deletion
 --------
 
-Delete a container
+This function deletes a container
 
 **Path**
 
@@ -1365,18 +1412,352 @@ Example:
 | 204  | Success, no container to be deleted                           |
 | 400  | Incorrect request data         |
 | 401  | An authentication error, a connection error         |
-| 500  | An error occurs in Web API or GridDB   |
+| 500  | An error has occurred in Web API or GridDB.   |
 
 **Response body**
 
 If the process is successful, nothing is returned.
 
-Please refer to [response body](#response_body) in case of failure.
+Please refer to the [response body](#response_body) in case of failure.
 
-SQL SELECT execution
+
+
+SQL DDL execution
 ----------------
 
-This function executes one or more SQL SELECT statements in a GridDB database.
+This function executes one or more SQL SELECT statements (CREATE TABLE, DROP TABLE, ALTER TABLE) in a GridDB database. 
+
+
+**Path**
+`/:cluster/dbs/:database/sql/ddl`
+
+| Item       | Description                                                    |
+|-----------|---------------------------------------------------------|
+| :cluster   | cluster name                                              |
+| :database  | database name (Specify "public" for a public database)      |
+
+**HTTP method**
+
+POST
+
+**Request header**
+
+Refer to the [request header](#request_header).
+
+**Request body**
+
+Specify one or more SQL DDL statements in the following JSON format:
+
+| Item      | Description                                 | JSON data type    | Required   |
+|-------|------------------------------------|--------------|--------|
+| /stmt  | An SQL DDL statement                                       | string         | ✓   |
+
+Example:
+
+```
+[
+ {"stmt" : "CREATE TABLE myTable (key INTEGER PRIMARY KEY, value1 DOUBLE NOT NULL, value2 DOUBLE NOT NULL)"},
+ {"stmt" : "drop table table1"}
+]
+```
+
+**Response code**
+
+| Code | Description                           |
+|--------|--------------------------------|
+| 200  | Success                           |
+| 400  | Incorrect request data         |
+| 401  | An authentication error, a connection error         |
+| 500  | An error has occurred in Web API or GridDB.   |
+
+**Response body**
+
+| Item    | Description                                               | JSON data type |
+|---------------|-------------------|--------------|
+| /status      | SQL DDL status. `1` denotes a success while `0` denotes a failure. Note that HTTP status code 200(OK) is returned even when the result contains `0`. | Number         |
+| /stmt        | SQL DDL statement                                         | String         |
+| /message     | error message displayed upon query execution | String         |
+
+
+Example:
+
+```
+[ 
+ {
+  "status" : 1,
+  "stmt" : "CREATE TABLE myTable (key INTEGER PRIMARY KEY, value1 DOUBLE NOT NULL, value2 DOUBLE NOT NULL)",
+  "message": null 
+ },
+ {
+  "status" : 0,
+  "stmt" : "drop table table1" ,
+  "message": null 
+ } 
+]
+
+```
+
+SQL DML SELECT execution
+----------------
+
+This function executes one or more SQL SELECT statements on a specified database. 
+
+**Path**
+
+`/:cluster/dbs/:database/sql/dml/query`
+
+| Item       | Description                                                    |
+|-----------|---------------------------------------------------------|
+| :cluster   | cluster name                                              |
+| :database  | database name (Specify "public" for a public database)      |
+
+**HTTP method**
+
+POST
+
+**Request header**
+
+Refer to the [request header](#request_header).
+
+**Request body**
+
+Specify one or more SQL SELECT statements in the following JSON format:
+
+| Item      | Description                                 | JSON data type    | Required   |
+|-------|------------------------------------|--------------|--------|
+| /stmt  | An SQL SELECT statement                                       | string         | ✓   |
+
+Example:
+
+```
+[
+  {"stmt" : "select * from container1"},
+  {"stmt" : "select * from myTable"}
+]
+```
+
+**Response code**
+
+| Code | Description                           |
+|--------|--------------------------------|
+| 200  | Success                           |
+| 400  | Incorrect request data         |
+| 401  | An authentication error, a connection error         |
+| 404  | The specified resource is not found.  |
+| 500  | An error has occurred in Web API or GridDB.   |
+
+**Response body**
+
+| Item    | Description                                               | JSON data type |
+|---------------|-------------------|--------------|
+| /columns | An array of column information                            | array         |
+| /columns/name    | Column name                                               | string       |
+| /columns/type    | data type                                            | string       |
+| /results    | SQL SELECT execution results   | array         |
+| /responseSizeByte         | Response size | Numer         |
+
+Example:
+
+```
+[
+  {
+    "columns":[
+      {"name":"date","type":"TIMESTAMP","timePrecision":"MILLISECOND"},
+      {"name":"value","type":"DOUBLE"},
+      {"name":"str","type":"STRING"}
+    ],
+    "results":[
+      ["2016-01-16T10:25:00.253Z",20.02,"row_example_1"],
+      ["2016-01-16T10:25:00.254Z",20.03,"row_example_2"],
+      ["2016-01-16T10:25:00.255Z",20.04,"row_example_3"],
+      ["2016-01-16T10:25:00.256Z",20.05,"row_example_4"]
+    ],
+    "responseSizeByte":180
+  },
+  {
+    "columns":[
+      {"name":"key","type":"INTEGER"},
+      {"name":"value1","type":"DOUBLE"},
+      {"name":"value2","type":"DOUBLE"}
+    ],
+    "results":[
+      [1,1.0,2.0]
+    ],
+    "responseSizeByte":20
+  }
+]
+```
+
+Depending on the column data type, the row's column values with the following JSON data type will be returned:
+
+| Classification | Data type |  | JSON data type | Example                         |
+|------------------|----------------|-------------------------|--------------------------|----------------------------|
+| Primitive | Boolean type | BOOL | Boolean value (true or false) | true                       |
+|                  | String type | STRING | String | "GridDB"                   |
+|                  | Integer type | BYTE/SHORT/INTEGER/LONG | Number | 512                        |
+|                  | Floating point type | FLOAT/DOUBLE | Number | 593.5                      |
+|                  | Date and time type | TIMESTAMP | Text string<br>・UTC<br>・format<br>YYYY-MM-DDThh:mm:ss.SSSZ | "2016-01-16T10:25:00.253Z" |
+
+[Memo]
+- If the column value is NULL, null is returned for the column in JSON data.
+- GEOMETRY and array types are not supported in this function.
+- For GEOMETRY and array columns, "UNKNOWN" will be returned as a data type, and null will be returned as a data value.
+- When multiple SQL statements are specified and any one of them fails to execute, status code 400 is returned as an HTTP response. In this case, SQL statements subsequent to the failed one are not executed.
+
+SQL DML UPDATE execution
+----------------
+
+This function executes one or more SQL UPDATE statements (UPDATE, INSERT, DELETE, REPLACE) on a GridDB database. 
+
+**Path**
+
+`/:cluster/dbs/:database/sql/dml/update`
+
+| Item      | Description                                            |
+| --------- | ------------------------------------------------------ |
+| :cluster  | cluster name                                           |
+| :database | database name (Specify "public" for a public database) |
+
+**HTTP method**
+
+POST
+
+**Request header**
+
+Refer to the [request header](#request_header).
+
+**Request body**
+
+Specify one or more SQL UPDATE statements in the following JSON format:
+
+| Item  | Description            | JSON data type | Required |
+| ----- | ---------------------- | -------------- | -------- |
+| /stmt | An SQL UPDATE statement | string         | ✓        |
+
+Example:
+
+```
+[ 
+  {"stmt" : "update container1 set col2 = 333 where col1 = 't3'"},
+  {"stmt" : "insert into container1(col1, col2) values('t4', 4)"}
+]
+```
+
+**Response code**
+
+| Code | Description                                 |
+| ---- | ------------------------------------------- |
+| 200  | Success                                     |
+| 400  | Incorrect request data                      |
+| 401  | An authentication error, a connection error |
+| 500  | An error has occurred in Web API or GridDB.        |
+
+**Response body**
+
+| Item         | Description                                                  | JSON data type |
+| ------------ | ------------------------------------------------------------ | -------------- |
+| /status      | Status of an SQL UPDATE statement. `1` denotes a success while `0` denotes a failure. Note that HTTP status code 200(OK) is returned even when the result contains `0`. | Number         |
+| /message     | Error message displayed when executing the query | String         |
+| /updatedRows | Number of updated or inserted rows                        | Number         |
+| /stmt        | SQL UPDATE statement                                         | String         |
+
+Example:
+
+```
+[ 
+  {
+    "status" : 1,
+    "updatedRows" : 2,
+    "stmt" : "update container1 set col2 = 333 where col1 = 't3'",
+    "message": null 
+  },
+  {
+    "status" : 0,
+    "updatedRows" : 0,
+    "stmt" : "insert into container1(col1, col2) values('t4', 4)" ,
+    "message": "[240001:SQL_COMPILE_SYNTAX_ERROR] Specified insert column='col1' is not found on updating (sql=\"insert into container1(col1, col2) values('t4', 4)\") (db='public') (user='admin') (clientId='1dafa133-df4-43cb-85b3-3b17593d298c:2') (clientNd='{clientId=1450, address=10.116.41.133:58632}') (address=10.116.227.26:20001, partitionId=557)" 
+  } 
+]
+```
+
+SQL DCL execution
+----------------
+
+This function executes one or more SQL DCL statements (GRANT, REVOKE, SET PASSWORD) on a GridDB database. 
+
+**Path**
+
+`/:cluster/dbs/:database/sql/dcl`
+
+| Item      | Description                                            |
+| --------- | ------------------------------------------------------ |
+| :cluster  | cluster name                                           |
+| :database | database name (Specify "public" for a public database) |
+
+**HTTP method**
+
+POST
+
+**Request header**
+
+Refer to the [request header](#request_header).
+
+**Request body**
+
+Specify one or more SQL DCL statements in the following JSON format:
+
+| Item  | Description            | JSON data type | Required |
+| ----- | ---------------------- | -------------- | -------- |
+| /stmt | An SQL DCL statement | string         | ✓        |
+
+
+Example:
+
+```
+[ 
+ {"stmt" : "grant all on database1 to user1"},
+ {"stmt" : "revoke all on database1 from user1"}
+]
+```
+
+**Response code**
+
+| Code | Description                                 |
+| ---- | ------------------------------------------- |
+| 200  | Success                                     |
+| 400  | Incorrect request data                      |
+| 401  | An authentication error, a connection error |
+| 500  | An error has occurred in Web API or GridDB.        |
+
+**Response body**
+
+| Item         | Description                                                  | JSON data type |
+| ------------ | ------------------------------------------------------------ | -------------- |
+| /status      | Status of an SQL UPDATE statement. `1` denotes a success while `0` denotes a failure. Note that HTTP status code 200(OK) is returned even when the result contains `0`. | Number         |
+| /message     | Error message displayed when executing the query | String         |
+| /stmt        | SQL UPDATE statement                                         | String         |
+
+Example:
+
+```
+[ 
+ {
+  "status" : 1,
+  "stmt" : "grant all on database1 to user1",
+  "message": null 
+ },
+ {
+  "status" : 0,
+  "stmt" : "revoke all on database1 from user1",
+  "message": null 
+ } 
+]
+```
+
+[Not Recommended] SQL SELECT execution
+----------------
+
+This function executes one or more SQL SELECT statements on a specified database. However, this  API is outdated and therefore not recommended for use; instead, use the new [SQL DML UPDATE execution](#dml_update) that is compatible.
 
 **Path**
 
@@ -1397,7 +1778,7 @@ Refer to the [request header](#request_header).
 
 **Request body**
 
-Specify one or more SQL SELECT statements as the following JSON format:
+Specify one or more SQL SELECT statements in the following JSON format:
 
 | Item      | Description                                 | JSON data type    | Required   |
 |-------|------------------------------------|--------------|--------|
@@ -1408,8 +1789,7 @@ Example:
 ```
 [
   {"stmt" : "select * from container1"},
-  {"stmt" : "select column1 from container2 where column1>=0"},
-  {"stmt" : "select column2, column3 from container3 order by column1 desc"}
+  {"stmt" : "select * from myTable"}
 ]
 ```
 
@@ -1420,8 +1800,8 @@ Example:
 | 200  | Success                           |
 | 400  | Incorrect request data         |
 | 401  | An authentication error, a connection error         |
-| 404  | The specified resource is not found  |
-| 500  | An error occurs in Web API or GridDB   |
+| 404  | The specified resource is not found.  |
+| 500  | An error has occurred in Web API or GridDB.   |
 
 **Response body**
 
@@ -1431,43 +1811,45 @@ Example:
 | /columns/name    | Column name                                               | string       |
 | /columns/type    | JSON data type                                            | string       |
 | /results    | SQL SELECT execution results   | array         |
+| /responseSizeByte         | Response size | Number         |
 
 Example:
 
 ```
 [
   {
-    "columns" : [
-      {"name": "date", "type": "TIMESTAMP"},
-      {"name": "value", "type": "DOUBLE"},
-      {"name": "str", "type": "STRING"}
+    "columns":[
+      {"name":"date","type":"TIMESTAMP","timePrecision":"MILLISECOND"},
+      {"name":"value","type":"DOUBLE"},
+      {"name":"str","type":"STRING"}
     ],
-    "results" : [
-      ["2016-01-16T10:25:00.253Z", 100.5, "normal" ],
-      ["2016-01-16T10:35:00.691Z", 173.9, "normal" ],
-      ["2016-01-16T10:45:00.032Z", 173.9, null]
-    ]
+    "results":[
+      ["2016-01-16T10:25:00.253Z",20.02,"row_example_1"],
+      ["2016-01-16T10:25:00.254Z",20.03,"row_example_2"],
+      ["2016-01-16T10:25:00.255Z",20.04,"row_example_3"],
+      ["2016-01-16T10:25:00.256Z",20.05,"row_example_4"]
+    ],
+    "responseSizeByte":180
   },
   {
-    "columns" : [
-      {"name": "date", "type": "TIMESTAMP"},
-      {"name": "value", "type": "DOUBLE"},
-      {"name": "str", "type": "STRING"}
+    "columns":[
+      {"name":"key","type":"INTEGER"},
+      {"name":"value1","type":"DOUBLE"},
+      {"name":"value2","type":"DOUBLE"}
     ],
-    "results" : [
-      ["2016-01-16T10:25:00.253Z", 100.5, "normal" ],
-      ["2016-01-16T10:35:00.691Z", 173.9, "normal" ],
-      ["2016-01-16T10:45:00.032Z", 173.9, null]
-    ]
+    "results":[
+      [1,1.0,2.0]
+    ],
+    "responseSizeByte":20
   }
 ]
 ```
 
-Depending on the column data type, column values with the following JSON data type will be returned:
+Depending on the column data type, the row's column values with the following JSON data type will be returned:
 
 | Classification | Data type |  | JSON data type | Example                         |
 |------------------|----------------|-------------------------|--------------------------|----------------------------|
-| Primitive | Boolean type | BOOL | Boolean (true/false) | true                       |
+| Primitive | Boolean type | BOOL | Boolean (true or false) | true                       |
 |                  | String type | STRING | String | "GridDB"                   |
 |                  | Integer type | BYTE/SHORT/INTEGER/LONG | Number | 512                        |
 |                  | Floating point type | FLOAT/DOUBLE | Number | 593.5                      |
@@ -1477,12 +1859,12 @@ Depending on the column data type, column values with the following JSON data ty
 - If the column value is NULL, null is returned for the column in JSON data.
 - GEOMETRY and array types are not supported in this function.
 - For GEOMETRY and array columns, "UNKNOWN" will be returned as a data type, and null will be returned as a data value.
-- When multiple SQL statements are specified and any one of them fails to execute, status code 400 is returned as an http response. In this case, SQL statements subsequent to the failed one are not executed.
+- When multiple SQL statements are specified and any one of them fails to execute, status code 400 is returned as an HTTP response. In this case, SQL statements subsequent to the failed one are not executed.
 
-SQL UPDATE execution
+[Not Recommended] SQL UPDATE execution
 ----------------
 
-This function executes one or more SQL UPDATE statements in a GridDB database.
+This function executes one or more SQL UPDATE statements in a GridDB database. However, this  API is outdated and therefore not recommended for use; instead, use the new [SQL DDL command execution](#ddl), [SQL DML UPDATE command execution](#dml_update), and [SQL DCL command execution](#dcl) that are compatible.
 
 **Path**
 
@@ -1503,7 +1885,7 @@ Refer to the [request header](#request_header).
 
 **Request body**
 
-Specify one or more SQL UPDATE statements as the following JSON format:
+Specify one or more SQL UPDATE statements in the following JSON format:
 
 | Item  | Description            | JSON data type | Required |
 | ----- | ---------------------- | -------------- | -------- |
@@ -1511,7 +1893,7 @@ Specify one or more SQL UPDATE statements as the following JSON format:
 
 [Memo]
 
-- SELECT, EXPLAIN, and ANALYZE in an SQL statement are not supported in this API.
+- SELECT, EXPLAIN, and ANALYZE in an SQL statement are not supported in the Web API.
 
 Example:
 
@@ -1529,13 +1911,13 @@ Example:
 | 200  | Success                                     |
 | 400  | Incorrect request data                      |
 | 401  | An authentication error, a connection error |
-| 500  | An error occurs in Web API or GridDB        |
+| 500  | An error has occurred in Web API or GridDB.        |
 
 **Response body**
 
 | Item         | Description                                                  | JSON data type |
 | ------------ | ------------------------------------------------------------ | -------------- |
-| /status      | Status of an SQL UPDATE statement. `1` and `0` denote success and failure, respectively. Even if a result contains `0`, the HTTP response status code is 200. | Number         |
+| /status      | Status of an SQL UPDATE statement. `1` denotes a success while `0` denotes a failure. Note that HTTP status code 200(OK) is returned even when the result contains `0`. | Number         |
 | /message     | Error message displayed when executing the query | String         |
 | /updatedRows | Number of updated or inserted rows                        | Number         |
 | /stmt        | SQL UPDATE statement                                         | String         |
@@ -1562,23 +1944,23 @@ Example:
 Checking the operation
 --------
 
-To check the operation of the Web API, use the curl command in Linux or some other command.
+To check the operation of the Web API, use the Linux curl command or some other command.
 
-- Example) Checking database connection
+- Example 1 Checking database connection
 
   ``` example
   curl -f -X GET -u "user:password" \
   http://host:port/griddb/v2/cluster/dbs/public/checkConnection
   ```
 
-- Example) Retrieving a container list
+- Example 2 Retrieving a container list
 
   ``` example
   curl -f -X GET -u "user:password" \
   http://host:port/griddb/v2/cluster/dbs/public/containers?limit=100
   ```
 
-- Example) Row acquisition
+- Example 3 Acquiring rows
 
   ``` shell
   curl -f -X POST -u "user:password" \
@@ -1586,7 +1968,7 @@ To check the operation of the Web API, use the curl command in Linux or some oth
   http://host:port/griddb/v2/cluster/dbs/public/containers/test/rows
   ```
 
-- Example) Row registration
+- Example 4 Registering rows
 
   ``` shell
   curl -f -X PUT -u "user:password" \
@@ -1594,7 +1976,7 @@ To check the operation of the Web API, use the curl command in Linux or some oth
   http://host:port/griddb/v2/cluster/dbs/public/containers/test/rows
   ```
 
-- Example) SQL SELECT execution
+- Example 5 Executing an SQL SELECT statement
 
   ``` shell
   curl -f -X POST -u "user:password" \
@@ -1602,3 +1984,11 @@ To check the operation of the Web API, use the curl command in Linux or some oth
   http://host:port/griddb/v2/cluster/dbs/public/sql/select
   ```
 
+Uninstallation
+----------------
+
+Stop the Web API and delete the directory and the distributed files using the following procedures:
+
+``` shell
+# rpm -e griddb-ce-webapi
+```
